@@ -12,7 +12,7 @@
     <div class="card">
         <div class="card-body">
             <h4 class="card-title mb-4">Billing Address</h4>
-            <form action="" method="post">
+            <form action="{% url 'place_order' %}" method="POST">
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="col form-group">
@@ -55,8 +55,8 @@
                     </div>
                     <div class="col form-group">
                         <label for="">Country</label>
-                        <select id="countrySelect" class="form-control">
-                            <option value="">Select a country</option>
+                        <select id="countrySelect" class="form-control" name="country">
+                            <option>Select a country</option>
                         </select>
                     </div>
                 </div>
