@@ -6,6 +6,7 @@
     <div class="container">
     
     <!-- ============================ COMPONENT 1 ================================= -->
+    <h4 class="text-center mb-10">Review your Order and Make Payment</h4>
     <div class="row">
         <aside class="col-lg-8">
             <div class="card">
@@ -13,7 +14,15 @@
                   <h5>Billing Address</h5>
                 </div>
                 <div class="card-body">
-                  <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+                  <p class="card-text mb-0">{{order.full_name}}</p>
+                  <p class="card-text mb-0">{{order.email}}</p>
+                  <p class="card-text mb-0">{{order.phone}}</p>
+                  <p class="card-text mb-0">{{order.full_address}}</p>
+                  <p class="card-text mb-0">{{order.city}}, {{order.state}}</p>
+                  <p class="card-text mb-0">{{order.country}}</p>
+                  {% if order.order_note %}
+                  <b>Order Note:</b> {{order.order_note}}
+                  {% endif %}
                 </div>
             </div>
             <div class="card">
@@ -21,7 +30,7 @@
                   <h5>Payment Method</h5>
                 </div>
                 <div class="card-body">
-                  <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+                  <p class="card-text">PayPal</p>
                 </div>
             </div>
             <div class="card">
@@ -29,7 +38,45 @@
                   <h5>Review Products</h5>
                 </div>
                 <div class="card-body">
-                  <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+                  <table class="table table-borderless table-shopping-cart">
+                    <thead class="text-muted">
+                    <tr class="small text-uppercase">
+                      <th scope="col">Product</th>
+                      <th scope="col" width="120">Quantity</th>
+                      <th scope="col" width="120">Price</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for cart_item in cart_items %}
+                    <tr>
+                        <td>
+                            <figure class="itemside align-items-center">
+                                <div class="aside"><img src="{{cart_item.product.images.url}}" class="img-sm"></div>
+                                <figcaption class="info">
+                                    <a href="{{ cart_item.product.get_url }}" class="title text-dark">{{cart_item.product.product_name}}</a>
+                                    <p class="text-muted small">
+                                        {% if cart_item.variations.all %}
+                                            {% for item in cart_item.variations.all %}
+                                                {{item.variation_category|capfirst}} : {{item.variation_value|capfirst}} <br>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </p>
+                                </figcaption>
+                            </figure>
+                        </td>
+                        <td> 
+                            <label for="">{{cart_item.quantity}}</label>    
+                        </td>
+                        <td> 
+                            <div class="price-wrap"> 
+                                <var class="price">${{cart_item.sub_total}}</var> 
+                                <small class="text-muted"> ${{cart_item.product.price}} each </small> 
+                            </div> <!-- price-wrap .// -->
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                    </table> 
                 </div>
             </div>
     
@@ -54,7 +101,9 @@
                 <p class="text-center mb-3">
                     <img src="{% static './images/misc/payments.png' %}" height="26">
                 </p>
-                <a href="{% url 'checkout' %}" class="btn btn-primary btn-block"> Make Payment </a>
+                <div id="paypal-button-container">
+                  <!-- PayPal Button Will Load -->
+                </div>
             </div> <!-- card-body.// -->
             </div> <!-- card.// -->
     
@@ -66,4 +115,67 @@
     </div> <!-- container .//  -->
     </section>
     <!-- ========================= SECTION CONTENT END// ========================= -->
+    <script>
+      function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+      var amount = "{{ grand_total }}"
+      var url = "{% url 'payments' %}"
+      var orderID = "{{order.order_number}}"
+      var payment_method = 'PayPal'
+      var csrftoken = getCookie('csrftoken');
+      // Render the PayPal button into #paypal-button-container
+      paypal.Buttons({
+
+          // Set up the transaction
+          createOrder: function(data, actions) {
+              return actions.order.create({
+                  purchase_units: [{
+                      amount: {
+                          value: amount
+                      }
+                  }]
+              });
+          },
+
+          // Finalize the transaction
+          onApprove: function(data, actions) {
+              return actions.order.capture().then(function(orderData) {
+                  // Successful capture! For demo purposes:
+                  console.log('Capture result', orderData, JSON.stringify(orderData, null, 2));
+                  sendData();
+                  function sendData(){
+                    fetch(url,{
+                      method : "POST", 
+                        headers: {
+                          "Content-type": "application/json",
+                          "X-CSRFToken": csrftoken,
+                        },
+                        body: JSON.stringify({
+                          orderID: orderID,
+                          transactionID: orderData.id,
+                          payment_method: payment_method,
+							            status: orderData.status,
+                        }),
+                      })
+                  }
+              });
+          }
+
+
+      }).render('#paypal-button-container');
+  </script>
 {% endblock %}
