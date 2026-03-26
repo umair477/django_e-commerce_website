@@ -1,98 +1,219 @@
 {% extends 'base.html' %}
+{% load i18n static %}
 
 {% block content %}
-<!-- ========================= SECTION CONTENT ========================= -->
 <section class="section-conten padding-y bg">
-    {% include 'includes/alerts.html' %}
-
     <div class="container">
         <div class="row">
-        <aside class="col-md-3">
-            <!--   SIDEBAR   -->
-            <ul class="list-group">
-                <a class="list-group-item active" href="#"> My order history </a>
-                <a class="list-group-item" href="#"> Transactions </a>
-                <a class="list-group-item" href="#"> Return and refunds </a>
-                <a class="list-group-item" href="#">Settings </a>
-                <a class="list-group-item" href="#"> My Selling Items </a>
-                <a class="list-group-item" href="#"> Received orders </a>
-            </ul>
-            <br>
-            <a class="btn btn-light btn-block" href="{% url 'logout' %}"> <i class="fa fa-power-off"></i> <span class="text">Log out</span> </a> 
-            <!--   SIDEBAR .//END   -->
-        </aside>
-        <main class="col-md-9">
-            <article class="card">
-            <header class="card-header">
-                <strong class="d-inline-block mr-3">Order ID: 6123456789</strong>
-                <span>Order Date: 16 December 2018</span>
-            </header>
-            <div class="card-body">
-                <div class="row"> 
-                    <div class="col-md-8">
-                        <h6 class="text-muted">Delivery to</h6>
-                        <p>Michael Jackson <br>  
-                        Phone +1234567890 Email: myname@pixsellz.com <br>
-                        Location: Home number, Building name, Street 123,  Tashkent, UZB <br> 
-                        P.O. Box: 100123
-                         </p>
+            <aside class="col-lg-3 mb-4">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <nav class="nav nav-pills flex-lg-column flex-row overflow-auto account-nav">
+                            <a class="nav-link {% if active_section == 'overview' %}active{% endif %}" href="{% url 'dashboard' %}">{% trans "Dashboard Overview" %}</a>
+                            <a class="nav-link {% if active_section == 'orders' %}active{% endif %}" href="{% url 'account_orders' %}">{% trans "Order History" %}</a>
+                            <a class="nav-link {% if active_section == 'addresses' %}active{% endif %}" href="{% url 'account_addresses' %}">{% trans "Address Book" %}</a>
+                            <a class="nav-link {% if active_section == 'profile' %}active{% endif %}" href="{% url 'account_profile' %}">{% trans "Profile Settings" %}</a>
+                        </nav>
                     </div>
-                    <div class="col-md-4">
-                        <h6 class="text-muted">Payment</h6>
-                        <span class="text-success">
-                            <i class="fab fa-lg fa-cc-visa"></i>
-                            Visa  **** 4216  
-                        </span>
-                        <p>Subtotal: $356 <br>
-                         Shipping fee:  $56 <br> 
-                         <span class="b">Total:  $456 </span>
-                        </p>
+                </div>
+                <a class="btn btn-light btn-block mt-3" href="{% url 'logout' %}"><i class="fa fa-power-off"></i> <span class="text">{% trans "Log out" %}</span></a>
+            </aside>
+
+            <main class="col-lg-9">
+                {% if active_section == 'overview' %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h3 class="mb-2">{% blocktrans with name=request.user.first_name|default:request.user.username %}Welcome back, {{ name }}{% endblocktrans %}</h3>
+                        <p class="text-muted mb-4">{% trans "Manage your account, follow your orders, and keep your shipping details up to date." %}</p>
+                        <div class="row text-center">
+                            <div class="col-md-4 mb-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="h4 mb-1">{{ orders|length }}</div>
+                                    <div class="text-muted">{% trans "Total Orders" %}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="h4 mb-1">{{ addresses|length }}</div>
+                                    <div class="text-muted">{% trans "Saved Addresses" %}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="h4 mb-1">{{ wishlist_items|length }}</div>
+                                    <div class="text-muted">{% trans "Wishlist Items" %}</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div> <!-- row.// -->
-            </div> <!-- card-body .// -->
-            <div class="table-responsive">
-            <table class="table table-hover">
-                <tr>
-                    <td width="65">
-                        <img src="../images/items/1.jpg" class="img-xs border">
-                    </td>
-                    <td> 
-                        <p class="title mb-0">Product name goes here </p>
-                        <var class="price text-muted">USD 145</var>
-                    </td>
-                    <td> Seller <br> Nike clothing </td>
-                    <td width="250"> <a href="#" class="btn btn-outline-primary">Track order</a> <a href="#" class="btn btn-light"> Details </a> </td>
-                </tr>
-                <tr>
-                    <td>
-                        <img src="../images/items/2.jpg" class="img-xs border">
-                    </td>
-                    <td> 
-                        <p class="title mb-0">Another name goes here </p>
-                        <var class="price text-muted">USD 15</var>
-                    </td>
-                    <td> Seller <br> ABC shop </td>
-                    <td> <a href="#" class="btn btn-outline-primary">Track order</a> <a href="#" class="btn btn-light"> Details </a> </td>
-                </tr>
-                <tr>
-                    <td>
-                        <img src="../images/items/3.jpg" class="img-xs border">
-                    </td>
-                    <td> 
-                        <p class="title mb-0">The name of the product  goes here </p>
-                        <var class="price text-muted">USD 145</var>
-                    </td>
-                    <td> Seller <br> Wallmart </td>
-                    <td> <a href="#" class="btn btn-outline-primary">Track order</a> <a href="#" class="btn btn-light"> Details </a> </td>
-                </tr>
-            </table>
-            </div> <!-- table-responsive .end// -->
-            </article> <!-- order-group.// --> 
-        </main>
-    </div> <!-- row.// -->
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><strong>{% trans "Recent Orders" %}</strong></div>
+                    <div class="card-body">
+                        {% if recent_orders %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "Order" %}</th>
+                                        <th>{% trans "Date" %}</th>
+                                        <th>{% trans "Status" %}</th>
+                                        <th>{% trans "Total" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in recent_orders %}
+                                    <tr>
+                                        <td><a href="{% url 'order_detail' order.id %}">{{ order.order_number }}</a></td>
+                                        <td>{{ order.created_at|date:"d M Y" }}</td>
+                                        <td><span class="badge badge-info">{{ order.get_status_display }}</span></td>
+                                        <td>${{ order.order_total }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="mb-0">{% trans "No orders yet." %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% elif active_section == 'orders' %}
+                <div class="card">
+                    <div class="card-header"><strong>{% trans "Order History" %}</strong></div>
+                    <div class="card-body">
+                        {% if orders %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "Order ID" %}</th>
+                                        <th>{% trans "Date" %}</th>
+                                        <th>{% trans "Payment" %}</th>
+                                        <th>{% trans "Total" %}</th>
+                                        <th>{% trans "Status" %}</th>
+                                        <th>{% trans "Details" %}</th>
+                                        <th>{% trans "Invoice" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders %}
+                                    <tr>
+                                        <td>{{ order.order_number }}</td>
+                                        <td>{{ order.created_at|date:"d M Y" }}</td>
+                                        <td>{{ order.get_payment_status_display }}</td>
+                                        <td>${{ order.order_total }}</td>
+                                        <td><span class="badge badge-info">{{ order.get_status_display }}</span></td>
+                                        <td><a href="{% url 'order_detail' order.id %}" class="btn btn-sm btn-light">{% trans "View" %}</a></td>
+                                        <td><a href="{% url 'order_invoice' order.order_number %}" class="btn btn-sm btn-outline-primary">{% trans "View Invoice" %}</a></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="mb-0">{% trans "No orders yet." %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% elif active_section == 'addresses' %}
+                <div class="card mb-4">
+                    <div class="card-header"><strong>{% if edit_address %}{% trans "Edit Address" %}{% else %}{% trans "Add Address" %}{% endif %}</strong></div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="address">
+                            {% if edit_address %}
+                            <input type="hidden" name="address_id" value="{{ edit_address.id }}">
+                            {% endif %}
+                            {{ address_form.as_p }}
+                            <button type="submit" class="btn btn-primary">{% if edit_address %}{% trans "Update Address" %}{% else %}{% trans "Save Address" %}{% endif %}</button>
+                            {% if edit_address %}
+                            <a href="{% url 'account_addresses' %}" class="btn btn-light">{% trans "Cancel" %}</a>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><strong>{% trans "Saved Addresses" %}</strong></div>
+                    <div class="card-body">
+                        {% for address in addresses %}
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between flex-wrap">
+                                <div>
+                                    <strong>{{ address.full_name }}</strong>
+                                    {% if address.is_default %}<span class="badge badge-success">{% trans "Default" %}</span>{% endif %}
+                                    <div>{{ address.full_address }}</div>
+                                    <small class="text-muted">{{ address.get_address_type_display }}</small>
+                                </div>
+                                <div class="mt-2 mt-md-0">
+                                    <a href="{% url 'account_addresses' %}?edit={{ address.id }}" class="btn btn-sm btn-outline-primary">{% trans "Edit" %}</a>
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete_address">
+                                        <input type="hidden" name="address_id" value="{{ address.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">{% trans "Remove" %}</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="mb-0">{% trans "You do not have any saved addresses yet." %}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% elif active_section == 'profile' %}
+                <div class="card mb-4">
+                    <div class="card-header"><strong>{% trans "Profile Settings" %}</strong></div>
+                    <div class="card-body">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="profile">
+                            {{ profile_form.as_p }}
+                            <button type="submit" class="btn btn-primary">{% trans "Save Profile" %}</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><strong>{% trans "Change Password" %}</strong></div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="password">
+                            {{ password_form.as_p }}
+                            <button type="submit" class="btn btn-outline-primary">{% trans "Change Password" %}</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </main>
+        </div>
     </div>
-    
-    
-    </section>
-    <!-- ========================= SECTION CONTENT END// ========================= -->
+</section>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    .account-nav .nav-link {
+        border-radius: 0;
+        color: #374151;
+        padding: 1rem 1.25rem;
+        white-space: nowrap;
+    }
+    .account-nav .nav-link.active {
+        background: #0d6efd;
+        color: #fff;
+    }
+    @media (max-width: 991.98px) {
+        .account-nav {
+            flex-wrap: nowrap;
+        }
+    }
+</style>
 {% endblock %}

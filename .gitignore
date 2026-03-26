@@ -172,3 +172,10 @@ cython_debug/
 #.idea/
 
 # End of https://www.toptal.com/developers/gitignore/api/django
+
+# --- Custom Project Additions ---
+# User requested to ignore manual/temp test files
+test.py
+tests.py
+**/test.py
+**/tests.py

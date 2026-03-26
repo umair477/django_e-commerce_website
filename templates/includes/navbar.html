@@ -1,89 +1,97 @@
-{% load static %}
+{% load i18n static %}
 <header class="section-header">
     <nav class="navbar p-md-0 navbar-expand-sm navbar-light border-bottom">
-    <div class="container">
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTop4" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarTop4">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item dropdown">
-                 <a href="#" class="nav-link">   English </a>
-                
-            </li>
-            <li class="nav-item dropdown">
-                <a href="#" class="nav-link"> USD </a>
-            </li>
-        </ul>
-        <ul class="navbar-nav">
-            <li><a href="#" class="nav-link"> <i class="fa fa-envelope"></i> Email </a></li>
-            <li><a href="#" class="nav-link"> <i class="fa fa-phone"></i> Call us </a></li>
-        </ul> <!-- list-inline //  -->
-      </div> <!-- navbar-collapse .// -->
-    </div> <!-- container //  -->
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTop4" aria-controls="navbarTop4" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarTop4">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item dropdown">
+                        <form action="{% url 'set_language' %}" method="post" class="form-inline my-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <select name="language" class="form-control form-control-sm" onchange="this.form.submit()">
+                                {% get_current_language as LANGUAGE_CODE %}
+                                {% get_available_languages as LANGUAGES %}
+                                {% for code, name in LANGUAGES %}
+                                <option value="{{ code }}" {% if code == LANGUAGE_CODE %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link">USD</span>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li><span class="nav-link"><i class="fa fa-envelope"></i> {{ site_name }}</span></li>
+                    <li><span class="nav-link"><i class="fa fa-phone"></i> {% trans "Customer Care" %}</span></li>
+                </ul>
+            </div>
+        </div>
     </nav>
-    
+
     <section class="header-main border-bottom">
         <div class="container">
-    <div class="row align-items-center">
-        <div class="col-lg-2 col-md-3 col-6">
-            <a href="{% url 'home' %}" class="brand-wrap">
-                <img class="logo" src="{% static './images/logo.png' %}">
-            </a> <!-- brand-wrap.// -->
-        </div>
-        <div class="col-lg col-sm col-md col-6 flex-grow-0">
-            <div class="category-wrap dropdown d-inline-block float-right">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"> 
-                    <i class="fa fa-bars"></i> All category 
-                </button>
-                <div class="dropdown-menu">
-                    <a class="dropdown-item" href="{% url 'store' %}">All Products </a>
-                    {% for category in links %}
-                    <a class="dropdown-item" href="{{category.get_url}}">{{category.catergory_name}} </a>
-                    {% endfor %}
+            <div class="row align-items-center">
+                <div class="col-lg-2 col-md-3 col-6">
+                    <a href="{% url 'home' %}" class="brand-wrap">
+                        <img class="logo" src="{% static 'images/logo.png' %}" alt="{{ site_name }}">
+                    </a>
                 </div>
-            </div>  <!-- category-wrap.// -->
-        </div> <!-- col.// -->
-        <a href="{% url 'store' %}" class="btn btn-outline-primary">Store</a>
-        <div class="col-lg  col-md-6 col-sm-12 col">
-            <form action="{% url 'search' %}" class="search" method="GET">
-                <div class="input-group w-100">
-                    <input type="text" class="form-control" style="width:60%;" placeholder="Search" name="keyword">
-                    
-                    <div class="input-group-append">
-                      <button class="btn btn-primary" type="submit">
-                        <i class="fa fa-search"></i>
-                      </button>
+                <div class="col-lg col-sm col-md col-6 flex-grow-0">
+                    <div class="category-wrap dropdown d-inline-block float-right">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                            <i class="fa fa-bars"></i> {% trans "All category" %}
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="{% url 'store' %}">{% trans "All Products" %}</a>
+                            {% for category in links %}
+                            <a class="dropdown-item" href="{{ category.get_url }}">{{ category.catergory_name }}</a>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-            </form> <!-- search-wrap .end// -->
-        </div> <!-- col.// -->
-        <div class="col-lg-3 col-sm-6 col-8 order-2 order-lg-3">
+                <a href="{% url 'store' %}" class="btn btn-outline-primary">{% trans "Store" %}</a>
+                <div class="col-lg col-md-6 col-sm-12 col">
+                    <form action="{% url 'search' %}" class="search" method="GET">
+                        <div class="input-group w-100">
+                            <input type="text" class="form-control" style="width:60%;" placeholder="{% trans 'Search' %}" name="keyword" value="{{ request.GET.keyword }}">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fa fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-lg-3 col-sm-6 col-8 order-2 order-lg-3">
                     <div class="d-flex justify-content-end mb-3 mb-lg-0">
-                        {% if user.id is not None %}
+                        {% if user.is_authenticated %}
                         <div class="widget-header">
-                            <small class="title text-muted">Welcome {{user.first_name}}</small>
-                            <div> 
-                                <a href="{% url 'dashboard' %}">Dashboard</a> <span class="dark-transp"> | </span>
-                                <a href="{% url 'logout' %}"> Log Out</a>
+                            <small class="title text-muted">{% trans "Welcome" %} {{ user.first_name|default:user.username }}</small>
+                            <div>
+                                <a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a> <span class="dark-transp"> | </span>
+                                <a href="{% url 'logout' %}">{% trans "Log Out" %}</a>
                             </div>
                         </div>
                         {% else %}
                         <div class="widget-header">
-                            <small class="title text-muted">Welcome Guest</small>
-                            <div> 
-                                <a href="{% url 'login' %}">Sign in</a> <span class="dark-transp"> | </span>
-                                <a href="{% url 'register' %}"> Register</a>
+                            <small class="title text-muted">{% trans "Welcome Guest" %}</small>
+                            <div>
+                                <a href="{% url 'login' %}">{% trans "Sign in" %}</a> <span class="dark-transp"> | </span>
+                                <a href="{% url 'register' %}">{% trans "Register" %}</a>
                             </div>
                         </div>
                         {% endif %}
                         <a href="{% url 'cart' %}" class="widget-header pl-3 ml-3">
                             <div class="icon icon-sm rounded-circle border"><i class="fa fa-shopping-cart"></i></div>
-                            <span class="badge badge-pill badge-danger notify">{{cart_count}}</span>
+                            <span class="badge badge-pill badge-danger notify" id="cart-count">{{ cart_count }}</span>
                         </a>
-                    </div> <!-- widgets-wrap.// -->
-                </div> <!-- col.// -->
-    </div> <!-- row.// -->
-        </div> <!-- container.// -->
-    </section> <!-- header-main .// -->
-    </header> <!-- section-header.// -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</header>

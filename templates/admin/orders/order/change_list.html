@@ -1,0 +1,21 @@
+{% extends "admin/change_list.html" %}
+
+{% block content_title %}
+{{ block.super }}
+{% if sales_overview %}
+<div style="display:flex; gap:1rem; margin:1rem 0;">
+  <div style="padding:1rem; border:1px solid #ddd; border-radius:6px; min-width:180px;">
+    <strong>Total Orders</strong>
+    <div>{{ sales_overview.total_orders }}</div>
+  </div>
+  <div style="padding:1rem; border:1px solid #ddd; border-radius:6px; min-width:180px;">
+    <strong>Total Revenue</strong>
+    <div>${{ sales_overview.total_revenue }}</div>
+  </div>
+  <div style="padding:1rem; border:1px solid #ddd; border-radius:6px; min-width:180px;">
+    <strong>Average Order</strong>
+    <div>${{ sales_overview.average_order|floatformat:2 }}</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

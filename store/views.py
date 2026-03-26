@@ -1,70 +1,150 @@
-from django.shortcuts import get_object_or_404, render
-from category.models import Category
-from . models import Product
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Avg, Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
+from django.views.decorators.http import require_POST
+
 from carts.models import CartItem
 from carts.views import _cart_id
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Q
-from django.http import HttpResponse
+from category.models import Category
 
-# Create your views here.
+from .filters import build_product_filter
+from .models import Product, Review, VariationCategory, WishlistItem
+
+
+def _base_product_queryset():
+    return (
+        Product.objects.filter(is_active=True, category__is_active=True)
+        .select_related("category")
+        .prefetch_related("images", "variations", "reviews")
+    )
+
+
 def store(request, category_slug=None):
-    categories = None
-    products = None
-    if category_slug != None:
-        categories = get_object_or_404(Category, slug = category_slug)
-        products = Product.objects.filter(category=categories, is_available=True).order_by('id')
-        paginator = Paginator(products, 3)
-        page = request.GET.get('page')
-        paged_products = paginator.get_page(page)
-        product_count = products.count()
-    else:
-        products = Product.objects.all().filter(is_available=True).order_by('id')
-        paginator = Paginator(products, 3)
-        page = request.GET.get('page')
-        paged_products = paginator.get_page(page)
-        product_count = products.count()
+    category = None
+    queryset = _base_product_queryset()
+
+    if category_slug is not None:
+        category = get_object_or_404(Category, slug=category_slug, is_active=True)
+        queryset = queryset.filter(category=category)
+
+    keyword = request.GET.get("keyword", "").strip()
+    if keyword:
+        queryset = queryset.filter(Q(description__icontains=keyword) | Q(product_name__icontains=keyword))
+
+    filtered_products, filter_form = build_product_filter(queryset, request.GET)
+    filtered_products = filtered_products.annotate(average_rating=Avg("reviews__rating")).order_by("product_name")
+
+    paginator = Paginator(filtered_products, 6)
+    page = request.GET.get("page")
+    paged_products = paginator.get_page(page)
+
+    filter_options = {
+        "brands": list(queryset.exclude(brand="").values_list("brand", flat=True).distinct()),
+        "sizes": list(
+            queryset.filter(variations__variation_category__name__iexact="size")
+            .values_list("variations__variation_value", flat=True)
+            .distinct()
+        ),
+        "colors": list(
+            queryset.filter(variations__variation_category__name__iexact="color")
+            .values_list("variations__variation_value", flat=True)
+            .distinct()
+        ),
+    }
 
     context = {
-        'products':paged_products,
-        'product_count':product_count,
+        "category": category,
+        "products": paged_products,
+        "product_count": filtered_products.count(),
+        "filter_form": filter_form,
+        "filter_options": filter_options,
+        "keyword": keyword,
+        "meta_title": category.catergory_name if category else _("Store"),
+        "meta_description": category.description if category and category.description else settings.SITE_DESCRIPTION,
     }
-    return render(request, 'store/store.html', context)
+    return render(request, "store/store.html", context)
+
 
 def product_detail(request, category_slug, product_slug):
-    try:
-        single_product = Product.objects.get(category__slug=category_slug, slug=product_slug)
-        in_cart = CartItem.objects.filter(cart__cart_id=_cart_id(request), product=single_product).exists()
-        
-        # Get all variation categories that have variations for this product
-        from .models import VariationCategory
-        variation_categories = VariationCategory.objects.filter(
-            variation__product=single_product,
-            variation__is_active=True,
-            is_active=True
-        ).distinct().order_by('display_name')
-        
-        # Get all product images
-        product_images = single_product.images.filter(is_active=True).order_by('order', 'created_date')
-        
-    except Exception as e:
-        raise e
+    single_product = get_object_or_404(
+        Product.objects.select_related("category").prefetch_related("images", "variations", "reviews__user"),
+        category__slug=category_slug,
+        slug=product_slug,
+        is_active=True,
+    )
+    in_cart = CartItem.objects.filter(cart__cart_id=_cart_id(request), product=single_product).exists()
+    variation_categories = (
+        VariationCategory.objects.filter(variations__product=single_product, variations__is_active=True, is_active=True)
+        .distinct()
+        .order_by("display_name")
+    )
+    product_images = single_product.images.filter(is_active=True).order_by("order", "created_date")
+    reviews = single_product.reviews.filter(is_approved=True).select_related("user")
+    is_wishlisted = False
+
+    if request.user.is_authenticated:
+        is_wishlisted = WishlistItem.objects.filter(user=request.user, product=single_product).exists()
+
     context = {
-        'single_product' : single_product,
-        'in_cart':in_cart,
-        'variation_categories': variation_categories,
-        'product_images': product_images,
+        "single_product": single_product,
+        "in_cart": in_cart,
+        "variation_categories": variation_categories,
+        "product_images": product_images,
+        "reviews": reviews,
+        "is_wishlisted": is_wishlisted,
+        "meta_title": single_product.product_name,
+        "meta_description": single_product.description or settings.SITE_DESCRIPTION,
     }
-    return render(request, 'store/product_detail.html', context)
+    return render(request, "store/product_detail.html", context)
+
 
 def search(request):
-    if 'keyword' in request.GET:
-        keyword = request.GET['keyword']
-        if keyword:
-            products = Product.objects.order_by('-created_date').filter(Q(description__icontains=keyword) | Q(product_name__icontains=keyword))
-            product_count = products.count()
-    context = {
-        'products' : products,
-        'product_count':product_count,
-    }
-    return render(request, 'store/store.html', context)
+    return store(request)
+
+
+@require_POST
+@login_required(login_url="login")
+def toggle_wishlist(request, product_id):
+    product = get_object_or_404(Product, pk=product_id, is_active=True)
+    wishlist_item, created = WishlistItem.objects.get_or_create(user=request.user, product=product)
+    if not created:
+        wishlist_item.delete()
+        wished = False
+        message = _("Removed from wishlist.")
+    else:
+        wished = True
+        message = _("Added to wishlist.")
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"wished": wished, "message": message})
+
+    messages.success(request, message)
+    return redirect(product.get_url())
+
+
+@require_POST
+@login_required(login_url="login")
+def submit_review(request, product_id):
+    product = get_object_or_404(Product, pk=product_id, is_active=True)
+    rating = int(request.POST.get("rating", 5))
+    review_text = request.POST.get("comment", "").strip()
+    if not review_text:
+        messages.error(request, "Please write a short review comment.")
+        return redirect(product.get_url())
+
+    Review.objects.update_or_create(
+        user=request.user,
+        product=product,
+        defaults={
+            "rating": max(1, min(rating, 5)),
+            "comment": review_text,
+            "is_approved": True,
+        },
+    )
+    messages.success(request, "Your review has been saved.")
+    return redirect(product.get_url())

@@ -1,0 +1,7 @@
+Thank you for your purchase from GreatKart.
+
+Order Number: {{ order.order_number }}
+Status: {{ order.get_status_display }}
+Total: {{ order.order_total }}
+
+Your PDF invoice is attached to this email.

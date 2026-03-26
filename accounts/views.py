@@ -1,192 +1,240 @@
-from django.shortcuts import render,redirect
-from django.http import HttpResponse
+from urllib.parse import parse_qs, urlparse
+
+from django.contrib import auth, messages
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
-from django.core.mail import EmailMessage
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMessage, send_mail
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.translation import activate as activate_language
+from django.views.decorators.http import require_POST
+
+from carts.models import Cart, CartItem
 from carts.views import _cart_id
-from carts.models import Cart,CartItem
-from . models import Account
-from .forms import RegistrationForm
-from django.contrib import messages, auth
-import requests
+
+from .forms import AddressForm, ProfileForm, RegistrationForm, StyledPasswordChangeForm
+from .models import Account, Address
 
 
-# Create your views here.
+def _merge_guest_cart_with_user(request, user):
+    try:
+        cart = Cart.objects.get(cart_id=_cart_id(request))
+    except Cart.DoesNotExist:
+        return
+
+    guest_items = CartItem.objects.filter(cart=cart).prefetch_related("variations")
+    user_items = CartItem.objects.filter(user=user).prefetch_related("variations")
+
+    existing_variations = {}
+    for item in user_items:
+        key = tuple(sorted(item.variations.values_list("id", flat=True)))
+        existing_variations[key] = item
+
+    for item in guest_items:
+        key = tuple(sorted(item.variations.values_list("id", flat=True)))
+        if key in existing_variations and existing_variations[key].product_id == item.product_id:
+            existing = existing_variations[key]
+            existing.quantity += item.quantity
+            existing.save(update_fields=["quantity"])
+            item.delete()
+            continue
+        item.user = user
+        item.cart = None
+        item.save(update_fields=["user", "cart"])
+
+
 def register(request):
-    if request.method == 'POST':
-        form = RegistrationForm(request.POST)
+    if request.method == "POST":
+        form = RegistrationForm(request.POST, request.FILES)
         if form.is_valid():
-            first_name = form.cleaned_data['first_name']
-            last_name = form.cleaned_data['last_name']
-            email = form.cleaned_data['email']
-            phone_number = form.cleaned_data['phone_number']
-            username = email.split("@")[0]
-            password = form.cleaned_data['password']
-
-            user = Account.objects.create_user(first_name=first_name, last_name=last_name, email=email, username=username, password=password)
-            user.phone_number = phone_number
+            email = form.cleaned_data["email"]
+            user = Account.objects.create_user(
+                first_name=form.cleaned_data["first_name"],
+                last_name=form.cleaned_data["last_name"],
+                email=email,
+                username=email.split("@")[0],
+                password=form.cleaned_data["password"],
+                phone_number=form.cleaned_data["phone_number"],
+                preferred_language=form.cleaned_data["preferred_language"],
+            )
+            user.is_active = False
             user.save()
 
-            #user Activation
-            mail_subject = ('Please activate your account')
-            message = render_to_string('accounts/account_verification_email.html', {
-                'user':user,
-                'domain': request.get_host(),
-                'uid':urlsafe_base64_encode(force_bytes(user.pk)),
-                'token':default_token_generator.make_token(user),
-            })
-            to_mail = email
-            send_email = EmailMessage(mail_subject, message, to=[to_mail])
-            try:
-                send_email.send()
-            except Exception as e:
-                print(f"Email sending failed: {e}")
-                # For development, you can skip email sending
-                pass
-            return redirect('/accounts/login/?command=verification&email='+email)
+            message = render_to_string(
+                "accounts/account_verification_email.html",
+                {
+                    "user": user,
+                    "domain": request.get_host(),
+                    "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                    "token": default_token_generator.make_token(user),
+                },
+            )
+            EmailMessage("Please activate your account", message, to=[email]).send(fail_silently=True)
+            return redirect("/accounts/login/?command=verification&email=" + email)
     else:
         form = RegistrationForm()
-    context = {
-        'form':form,
-    }
-    return render(request, 'accounts/register.html', context)
+    return render(request, "accounts/register.html", {"form": form})
+
 
 def login(request):
-    if request.method == 'POST':
-        email = request.POST['email']
-        password = request.POST['password']
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip().lower()
+        password = request.POST.get("password", "")
         user = auth.authenticate(email=email, password=password)
-        if user is not None:
-            try:
-                cart = Cart.objects.get(cart_id=_cart_id(request))
-                is_cart_item_exists = CartItem.objects.filter(cart=cart).exists()
-                if is_cart_item_exists:
-                    cart_items = CartItem.objects.filter(cart=cart)
-                    product_variation = []
-                    for item in cart_items:
-                        variation = item.variations.all()
-                        product_variation.append(list(variation))
+        if user is None:
+            messages.error(request, "Invalid email or password.")
+            return redirect("login")
 
-                cart_item = CartItem.objects.filter(user=user)
-                ex_var_list = []
-                id =[]
-                for item in cart_item:
-                    existing_variatons = item.variations.all()
-                    ex_var_list.append(list(existing_variatons))
-                    id.append(item.id)
+        _merge_guest_cart_with_user(request, user)
+        auth.login(request, user)
+        activate_language(getattr(user, "preferred_language", "en"))
+        messages.success(request, "You are now logged in.")
+
+        referrer = request.META.get("HTTP_REFERER", "")
+        next_values = parse_qs(urlparse(referrer).query).get("next")
+        if next_values:
+            return redirect(next_values[0])
+        return redirect("dashboard")
+
+    return render(request, "accounts/login.html")
 
 
-                for pr in product_variation:
-                    if pr in ex_var_list:
-                        index = ex_var_list.index(pr)
-                        item_id = id[index]
-                        item = CartItem.objects.get(id=item_id)
-                        item.quantity += 1
-                        item.user = user
-                        item.save()
-                    else:
-                        cart_item = CartItem.objects.filter(cart=cart)
-                        for item in cart_item:
-                            item.user=user
-                            item.save()
-            except:
-                pass
-            auth.login(request, user)
-            messages.success(request, 'You are now logged in.')
-            url = request.META.get('HTTP_REFERER')
-            try:
-                query = requests.utils.urlparse(url).query
-                params = dict(x.split('=') for x in query.split('&'))
-                if 'next' in params:
-                    nextPage = params['next']
-                    return redirect(nextPage)
-            except:
-                return redirect('dashboard')
-        else:
-            messages.error(request, 'Invalid Email or Password!')
-            return redirect('login')
-    return render(request, 'accounts/login.html')
-
-@login_required(login_url='login')
+@login_required(login_url="login")
 def logout(request):
     auth.logout(request)
-    messages.success(request, 'You are Logged Out.')
-    return redirect('login')
+    messages.success(request, "You are logged out.")
+    return redirect("login")
 
-def activate(request,uidb64, token):
+
+def activate(request, uidb64, token):
     try:
         uid = urlsafe_base64_decode(uidb64).decode()
         user = Account._default_manager.get(pk=uid)
-    except(TypeError, ValueError, OverflowError, Account.DoesNotExist):
+    except (TypeError, ValueError, OverflowError, Account.DoesNotExist):
         user = None
 
-    if user is not None and default_token_generator.check_token(user,token):
-        user.is_active = True
-        user.save()
-        messages.success(request, 'Congratulations!! Your Account is activated')
-        return redirect('login')
-    else:
-        messages.error(request, 'Invalid Activation Link. Please Try Again.')
-        return redirect('register')
-    
-@login_required(login_url='login')
+    if user is None or not default_token_generator.check_token(user, token):
+        messages.error(request, "Invalid activation link. Please try again.")
+        return redirect("register")
+
+    user.is_active = True
+    user.email_verified = True
+    user.save(update_fields=["is_active", "email_verified"])
+    send_mail(
+        "Welcome to GreatKart",
+        f"Hi {user.first_name}, your account is now active and ready to shop.",
+        None,
+        [user.email],
+        fail_silently=True,
+    )
+    messages.success(request, "Congratulations. Your account is activated.")
+    return redirect("login")
+
+
+@login_required(login_url="login")
+def _dashboard_context(request, section, address_form=None, profile_form=None, password_form=None):
+    orders = (
+        request.user.orders.select_related("payment", "shipping_address", "billing_address")
+        .prefetch_related("items__product", "items__variations")
+        .all()
+    )
+    addresses = request.user.addresses.filter(is_active=True)
+
+    edit_address = None
+    edit_address_id = request.GET.get("edit")
+    if edit_address_id and section == "addresses":
+        edit_address = get_object_or_404(Address, pk=edit_address_id, user=request.user, is_active=True)
+
+    context = {
+        "orders": orders,
+        "recent_orders": orders[:3],
+        "addresses": addresses,
+        "profile_form": profile_form or ProfileForm(instance=request.user),
+        "password_form": password_form or StyledPasswordChangeForm(user=request.user),
+        "address_form": address_form or AddressForm(instance=edit_address),
+        "wishlist_items": request.user.wishlist_items.select_related("product", "product__category"),
+        "active_section": section,
+        "edit_address": edit_address,
+    }
+    return render(request, "accounts/dashboard.html", context)
+
+
+@login_required(login_url="login")
 def dashboard(request):
-    return render(request, 'accounts/dashboard.html')
+    return _dashboard_context(request, "overview")
 
-def forgotPassword(request):
-    if request.method == 'POST':
-        email = request.POST['email']
-        if Account.objects.filter(email=email).exists():
-            user = Account.objects.get(email__exact=email)
-            #Passsword Reset Email
-            mail_subject = ('Reset Password')
-            message = render_to_string('accounts/reset_password_email.html', {
-                'user':user,
-                'domain': request.get_host(),
-                'uid':urlsafe_base64_encode(force_bytes(user.pk)),
-                'token':default_token_generator.make_token(user),
-            })
-            to_mail = email
-            send_email = EmailMessage(mail_subject, message, to=[to_mail])
-            send_email.send()
-            messages.success(request, 'Password Reset email has been sent to your email.')
-            return redirect('login')
-        else:
-            messages.error(request, 'Account with this Email does not exist.')
-            return redirect('forgotPassword')
 
-    return render(request, 'accounts/forgotPassword.html')
+@login_required(login_url="login")
+def account_orders(request):
+    return _dashboard_context(request, "orders")
 
-def resetpassword_validate(request, uidb64, token):
-    try:
-        uid = urlsafe_base64_decode(uidb64).decode()
-        user = Account._default_manager.get(pk=uid)
-    except(TypeError, ValueError, OverflowError, Account.DoesNotExist):
-        user = None
-    if user is not None and default_token_generator.check_token(user,token):
-        request.session['uid'] = uid
-        messages.success(request, 'Please reset your password')
-        return redirect('resetPassword')
-    else:
-        messages.error(request, 'The link has been expired')
-        return redirect('login')
-    
-def resetPassword(request):
-    if request.method == 'POST':
-        password = request.POST['password']
-        confirm_password = request.POST['confirm_password']
-        if password == confirm_password:
-            uid = request.session.get('uid')
-            user = Account.objects.get(pk=uid)
-            user.set_password(password)
-            user.save()
-            messages.success(request, 'Password reset successful')
-            return redirect('login')
-        else:
-            messages.error(request, 'Password does not match')
-            return redirect('resetPassword')
-    else:
-        return render(request, 'accounts/resetPassword.html')
+
+@login_required(login_url="login")
+def account_addresses(request):
+    address_form = None
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "delete_address":
+            address = get_object_or_404(Address, pk=request.POST.get("address_id"), user=request.user)
+            address.is_active = False
+            address.is_default = False
+            address.save(update_fields=["is_active", "is_default"])
+            messages.success(request, "Address removed.")
+            return redirect("account_addresses")
+
+        address_id = request.POST.get("address_id")
+        instance = get_object_or_404(Address, pk=address_id, user=request.user) if address_id else None
+        address_form = AddressForm(request.POST, instance=instance)
+        if address_form.is_valid():
+            address = address_form.save(commit=False)
+            address.user = request.user
+            address.save()
+            messages.success(request, "Address book updated.")
+            return redirect("account_addresses")
+
+    return _dashboard_context(request, "addresses", address_form=address_form)
+
+
+@login_required(login_url="login")
+def account_profile(request):
+    profile_form = None
+    password_form = None
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "profile":
+            profile_form = ProfileForm(request.POST, request.FILES, instance=request.user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Your profile has been updated.")
+                return redirect("account_profile")
+
+        elif action == "password":
+            password_form = StyledPasswordChangeForm(user=request.user, data=request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Your password has been changed.")
+                return redirect("account_profile")
+
+    return _dashboard_context(
+        request,
+        "profile",
+        profile_form=profile_form,
+        password_form=password_form,
+    )
+
+
+@require_POST
+@login_required(login_url="login")
+def delete_address(request, address_id):
+    address = get_object_or_404(Address, pk=address_id, user=request.user)
+    address.is_active = False
+    address.is_default = False
+    address.save(update_fields=["is_active", "is_default"])
+    messages.success(request, "Address removed.")
+    return redirect("account_addresses")

@@ -1,198 +1,184 @@
-{% extends 'base.html'%}
-{% load static %}
+{% extends 'base.html' %}
+{% load i18n static %}
 
 {% block content %}
-<!-- ========================= SECTION PAGETOP ========================= -->
 <section class="section-pagetop bg">
     <div class="container">
-        {% if 'search' in request.path %}
-            <h2 class="title-page">Search Result</h2> 
-        {% else %} 
-            <h2 class="title-page">Our Store</h2>  
+        {% if keyword %}
+        <h2 class="title-page">{% trans "Search Result" %}</h2>
+        {% else %}
+        <h2 class="title-page">{% trans "Our Store" %}</h2>
         {% endif %}
-    </div> <!-- container //  -->
+    </div>
 </section>
-<!-- ========================= SECTION INTRO END// ========================= -->
 
-<!-- ========================= SECTION CONTENT ========================= -->
 <section class="section-content padding-y">
     <div class="container">
-    
-    <div class="row">
-        <aside class="col-md-3">
-            
-    <div class="card">
-        <article class="filter-group">
-            <header class="card-header">
-                <a href="#" data-toggle="collapse" data-target="#collapse_1" aria-expanded="true" class="">
-                    <i class="icon-control fa fa-chevron-down"></i>
-                    <h6 class="title">Categories</h6>
-                </a>
-            </header>
-            <div class="filter-content collapse show" id="collapse_1">
-                <div class="card-body">
-                    <ul class="list-menu">
-                        <li><a href="{% url 'store' %}">All Products</a></li>
-                        {% for category in links %}
-                        <li><a href="{{category.get_url}}">{{category.catergory_name}}</a></li>
-                        {% endfor %}
-                    </ul>
-                </div> <!-- card-body.// -->
-            </div>
-        </article> <!-- filter-group  .// -->
-        <article class="filter-group">
-            <header class="card-header">
-                <a href="#" data-toggle="collapse" data-target="#collapse_4" aria-expanded="true" class="">
-                    <i class="icon-control fa fa-chevron-down"></i>
-                    <h6 class="title">Sizes </h6>
-                </a>
-            </header>
-            <div class="filter-content collapse show" id="collapse_4">
-                <div class="card-body">
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> XS </span>
-                  </label>
-    
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> SM </span>
-                  </label>
-    
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> LG </span>
-                  </label>
-    
-                  <label class="checkbox-btn">
-                    <input type="checkbox">
-                    <span class="btn btn-light"> XXL </span>
-                  </label>
-            </div><!-- card-body.// -->
-            </div>
-        </article> <!-- filter-group .// -->
-        
-        <article class="filter-group">
-            <header class="card-header">
-                <a href="#" data-toggle="collapse" data-target="#collapse_3" aria-expanded="true" class="">
-                    <i class="icon-control fa fa-chevron-down"></i>
-                    <h6 class="title">Price range </h6>
-                </a>
-            </header>
-            <div class="filter-content collapse show" id="collapse_3">
-                <div class="card-body">
-                    
-                    <div class="form-row">
-                    <div class="form-group col-md-6">
-                      <label>Min</label>
-                      <!-- <input class="form-control" placeholder="$0" type="number"> -->
-                          <select class="mr-2 form-control">
-                            <option value="0">$0</option>
-                            <option value="50">$50</option>
-                            <option value="100">$100</option>
-                            <option value="150">$150</option>
-                            <option value="200">$200</option>
-                            <option value="500">$500</option>
-                            <option value="1000">$1000</option>
-                        </select>
-                    </div>
-                    <div class="form-group text-right col-md-6">
-                      <label>Max</label>
-                          <select class="mr-2 form-control">
-                            <option value="50">$50</option>
-                            <option value="100">$100</option>
-                            <option value="150">$150</option>
-                            <option value="200">$200</option>
-                            <option value="500">$500</option>
-                            <option value="1000">$1000</option>
-                            <option value="2000">$2000+</option>
-                        </select>
-                    </div>
-                    </div> <!-- form-row.// -->
-                    <button class="btn btn-block btn-primary">Apply</button>
-                </div><!-- card-body.// -->
-            </div>
-        </article> <!-- filter-group .// -->
-        
-    </div> <!-- card.// -->
-    
-        </aside> <!-- col.// -->
-        <main class="col-md-9">
-    
-    <header class="border-bottom mb-4 pb-3">
-            <div class="form-inline">
-                <span class="mr-md-auto"><b>{{product_count}}</b> Items found </span>
-                
-            </div>
-    </header><!-- sect-heading -->
-    
-    <div class="row">
-        {% if products %}
-            {% for product in products %}
-            <div class="col-md-4">
-                <figure class="card card-product-grid">
-                    <div class="img-wrap"> 
-                        
-                    <a href="{{product.get_url}}">
-    {% if product.main_image %}
-        <img src="{{product.main_image.url}}">
-    {% else %}
-        <img src="{% static 'images/no-image.png' %}" alt="No image available">
-    {% endif %}
-</a>
-                        
-                    </div> <!-- img-wrap.// -->
-                    <figcaption class="info-wrap">
-                        <div class="fix-height">
-                            <a href="{{product.get_url}}" class="title">{{product.product_name}}</a>
-                            <div class="price-wrap mt-2">
-                                <span class="price">${{product.price}}</span>
-                            </div> <!-- price-wrap.// -->
+        <div class="row">
+            <aside class="col-md-3">
+                <div class="card">
+                    <form method="get" class="card-body">
+                        {% if keyword %}
+                        <input type="hidden" name="keyword" value="{{ keyword }}">
+                        {% endif %}
+                        <article class="filter-group">
+                            <header class="card-header">
+                                <h6 class="title">{% trans "Categories" %}</h6>
+                            </header>
+                            <div class="filter-content">
+                                <ul class="list-menu">
+                                    <li><a href="{% url 'store' %}">{% trans "All Products" %}</a></li>
+                                    {% for category_link in links %}
+                                    <li><a href="{{ category_link.get_url }}">{{ category_link.catergory_name }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </article>
+
+                        <article class="filter-group">
+                            <header class="card-header">
+                                <h6 class="title">{% trans "Price range" %}</h6>
+                            </header>
+                            <div class="filter-content">
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label>{% trans "Min" %}</label>
+                                        <input class="form-control" type="number" step="0.01" name="min_price" value="{{ request.GET.min_price }}">
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label>{% trans "Max" %}</label>
+                                        <input class="form-control" type="number" step="0.01" name="max_price" value="{{ request.GET.max_price }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="filter-group">
+                            <header class="card-header">
+                                <h6 class="title">{% trans "Brand" %}</h6>
+                            </header>
+                            <div class="filter-content">
+                                <select name="brand" class="form-control">
+                                    <option value="">{% trans "Any brand" %}</option>
+                                    {% for brand in filter_options.brands %}
+                                    <option value="{{ brand }}" {% if request.GET.brand == brand %}selected{% endif %}>{{ brand }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </article>
+
+                        <article class="filter-group">
+                            <header class="card-header">
+                                <h6 class="title">{% trans "Size" %}</h6>
+                            </header>
+                            <div class="filter-content">
+                                <select name="size" class="form-control">
+                                    <option value="">{% trans "Any size" %}</option>
+                                    {% for size in filter_options.sizes %}
+                                    <option value="{{ size }}" {% if request.GET.size == size %}selected{% endif %}>{{ size|upper }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </article>
+
+                        <article class="filter-group">
+                            <header class="card-header">
+                                <h6 class="title">{% trans "Color" %}</h6>
+                            </header>
+                            <div class="filter-content">
+                                <select name="color" class="form-control">
+                                    <option value="">{% trans "Any color" %}</option>
+                                    {% for color in filter_options.colors %}
+                                    <option value="{{ color }}" {% if request.GET.color == color %}selected{% endif %}>{{ color|capfirst }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </article>
+
+                        <div class="form-group mt-3">
+                            <label class="checkbox-btn">
+                                <input type="checkbox" name="in_stock" {% if request.GET.in_stock %}checked{% endif %}>
+                                <span class="btn btn-light">{% trans "In Stock only" %}</span>
+                            </label>
                         </div>
-                        <a href="{{product.get_url}}" class="btn btn-block btn-primary">View Product </a>   
-                    </figcaption>
-                </figure>
-            </div> <!-- col.// -->
-            {% endfor %}
-        {% else %}
-            <div>
-                <h2>No Product Found. Please try again</h2>
-            </div>
-        {% endif %}
-    </div> <!-- row end.// -->
-    
-    
-    <nav class="mt-4" aria-label="Page navigation sample">
-    {% if products.has_other_pages %}
-      <ul class="pagination">
-        {% if products.has_previous %}
-            <li class="page-item"><a class="page-link" href="?page={{products.previous_page_number}}">Previous</a></li>
-        {% else %}
-            <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-        {% endif %}
+                        <button class="btn btn-block btn-primary" type="submit">{% trans "Apply" %}</button>
+                    </form>
+                </div>
+            </aside>
 
-        {% for i in products.paginator.page_range %}
-            {% if products.number == i %}
-                <li class="page-item active"><a class="page-link" href="#">{{i}}</a></li>
-            {% else %}
-                <li class="page-item"><a class="page-link" href="?page={{i}}">{{i}}</a></li>
-            {% endif %}
-        {% endfor %}
-        {% if products.has_next %}
-            <li class="page-item"><a class="page-link" href="?page={{products.next_page_number}}">Next</a></li>
-        {% else %}
-            <li class="page-item disabled"><a class="page-link" href="#">Next</a></li>
-        {% endif %}
-      </ul>
-    {% endif %}
-    </nav>
-    
-        </main> <!-- col.// -->
-    
+            <main class="col-md-9">
+                <header class="border-bottom mb-4 pb-3">
+                    <div class="form-inline">
+                        <span class="mr-md-auto"><b>{{ product_count }}</b> {% trans "Items found" %}</span>
+                    </div>
+                </header>
+
+                <div class="row">
+                    {% if products %}
+                        {% for product in products %}
+                        <div class="col-md-4">
+                            <figure class="card card-product-grid">
+                                <div class="img-wrap">
+                                    <a href="{{ product.get_url }}">
+                                        {% if product.main_image %}
+                                        <img src="{{ product.main_image.url }}" alt="{{ product.product_name }}">
+                                        {% else %}
+                                        <img src="{% static 'images/no-image.png' %}" alt="{% trans 'No image available' %}">
+                                        {% endif %}
+                                    </a>
+                                </div>
+                                <figcaption class="info-wrap">
+                                    <div class="fix-height">
+                                        <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
+                                        <div class="price-wrap mt-2">
+                                            <span class="price">${{ product.effective_price }}</span>
+                                            {% if product.discount_price %}
+                                            <small class="text-muted"><s>${{ product.price }}</s></small>
+                                            {% endif %}
+                                        </div>
+                                        {% if product.brand %}
+                                        <small class="text-muted">{{ product.brand }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{{ product.get_url }}" class="btn btn-block btn-primary">{% trans "View Product" %}</a>
+                                </figcaption>
+                            </figure>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="col-12">
+                        <h2>{% trans "No product found. Please try again." %}</h2>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <nav class="mt-4" aria-label="{% trans 'Page navigation' %}">
+                    {% if products.has_other_pages %}
+                    <ul class="pagination">
+                        {% if products.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ products.previous_page_number }}">{% trans "Previous" %}</a></li>
+                        {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">{% trans "Previous" %}</a></li>
+                        {% endif %}
+
+                        {% for i in products.paginator.page_range %}
+                        {% if products.number == i %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if products.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ products.next_page_number }}">{% trans "Next" %}</a></li>
+                        {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">{% trans "Next" %}</a></li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+                </nav>
+            </main>
+        </div>
     </div>
-    
-    </div> <!-- container .//  -->
-    </section>
-    <!-- ========================= SECTION CONTENT END// ========================= -->
-
+</section>
 {% endblock %}
