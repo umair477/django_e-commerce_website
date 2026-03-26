@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: greatkart
+    runtime: python
+    plan: free
+    branch: master
+    autoDeployTrigger: commit
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate && gunicorn greatkart.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /healthz/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: localhost,127.0.0.1

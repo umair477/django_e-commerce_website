@@ -18,6 +18,7 @@ sitemaps = {
 
 urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
+    path("healthz/", views.healthz, name="healthz"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
 ]
 

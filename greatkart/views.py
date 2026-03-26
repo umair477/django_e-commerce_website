@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import render
 
 from store.models import Product
@@ -16,3 +17,7 @@ def home(request):
         "meta_description": settings.SITE_DESCRIPTION,
     }
     return render(request, "home.html", context)
+
+
+def healthz(request):
+    return JsonResponse({"status": "ok"})
