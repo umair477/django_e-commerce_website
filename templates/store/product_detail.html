@@ -43,7 +43,17 @@
                 <main class="col-md-6 border-left">
                     <article class="content-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <h2 class="title mb-0">{{ single_product.product_name }}</h2>
+                            <div>
+                                <h2 class="title mb-0">{{ single_product.product_name }}</h2>
+                                {% if single_product.has_discount %}
+                                <div class="mt-2 d-flex flex-wrap align-items-center">
+                                    <span class="sale-badge sale-badge--inline mr-2">{% trans "Sale" %}</span>
+                                    <span class="price-save-pill">
+                                        {% blocktrans with percent=single_product.discount_percent %}Save {{ percent }}%{% endblocktrans %}
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
                             {% if user.is_authenticated %}
                             <form action="{% url 'toggle_wishlist' single_product.id %}" method="post">
                                 {% csrf_token %}
@@ -55,9 +65,11 @@
                         </div>
 
                         <div class="mb-3 mt-3">
-                            <var class="price h4">${{ single_product.effective_price }}</var>
-                            {% if single_product.discount_price %}
-                            <small class="text-muted"><s>${{ single_product.price }}</s></small>
+                            <var class="price h4 mb-0">${{ single_product.effective_price }}</var>
+                            {% if single_product.has_discount %}
+                            <div class="mt-2">
+                                <small class="price-original">${{ single_product.price }}</small>
+                            </div>
                             {% endif %}
                         </div>
 
@@ -89,9 +101,32 @@
                             {% if single_product.stock <= 0 %}
                             <h5 class="text-danger">{% trans "Out of Stock" %}</h5>
                             {% else %}
-                            <button type="submit" class="btn btn-primary">
-                                <span class="text">{% trans "Add to cart" %}</span> <i class="fas fa-shopping-cart"></i>
-                            </button>
+                            <div class="d-flex flex-wrap align-items-center">
+                                <div class="quantity-stepper mr-3 mb-3">
+                                    <button type="button" class="btn btn-light" data-qty-change="-1" aria-label="{% trans 'Decrease quantity' %}">
+                                        <i class="fa fa-minus"></i>
+                                    </button>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        id="product-quantity"
+                                        class="form-control"
+                                        min="1"
+                                        max="{{ single_product.stock_count }}"
+                                        value="1"
+                                    >
+                                    <button type="button" class="btn btn-light" data-qty-change="1" aria-label="{% trans 'Increase quantity' %}">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                                <button type="submit" class="btn btn-primary mb-3" id="add-to-cart-button">
+                                    <span class="text">{% trans "Add to cart" %}</span> <i class="fas fa-shopping-cart"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mb-2">
+                                {% blocktrans with stock=single_product.stock_count %}Available stock: {{ stock }}{% endblocktrans %}
+                            </small>
+                            <div class="small mt-2" id="add-to-cart-feedback" role="status" aria-live="polite"></div>
                             {% endif %}
                         </form>
                     </article>
@@ -232,25 +267,86 @@
       },
     });
 
-    document.getElementById('add-to-cart-form').addEventListener('submit', function (event) {
+    var form = document.getElementById('add-to-cart-form');
+    var quantityInput = document.getElementById('product-quantity');
+    var feedback = document.getElementById('add-to-cart-feedback');
+    var addButton = document.getElementById('add-to-cart-button');
+
+    if (!form) {
+        return;
+    }
+
+    function clampProductQuantity(nextValue) {
+        var min = parseInt(quantityInput.getAttribute('min') || '1', 10);
+        var max = parseInt(quantityInput.getAttribute('max') || '1', 10);
+        var normalized = parseInt(nextValue, 10);
+        if (Number.isNaN(normalized)) {
+            normalized = min;
+        }
+        quantityInput.value = Math.min(max, Math.max(min, normalized));
+    }
+
+    if (quantityInput) {
+        document.querySelectorAll('[data-qty-change]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                clampProductQuantity((parseInt(quantityInput.value || '1', 10) || 1) + parseInt(button.dataset.qtyChange, 10));
+            });
+        });
+
+        quantityInput.addEventListener('input', function() {
+            clampProductQuantity(quantityInput.value);
+        });
+    }
+
+    form.addEventListener('submit', function (event) {
         event.preventDefault();
-        var form = this;
+        if (feedback) {
+            feedback.textContent = '';
+        }
+        if (addButton) {
+            addButton.disabled = true;
+        }
+        form.classList.add('is-loading');
         fetch(form.action, {
             method: 'POST',
-            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': window.getCsrfToken()
+            },
             body: new FormData(form)
         }).then(function (response) {
-            return response.json();
+            return response.json().then(function (data) {
+                return { ok: response.ok, data: data };
+            });
         }).then(function (data) {
-            if (data.success) {
+            if (!data.ok || !data.data.success) {
+                throw data.data;
+            }
+            if (data.data.success) {
                 var cartCount = document.getElementById('cart-count');
                 if (cartCount) {
-                    cartCount.textContent = data.cart_count;
+                    cartCount.textContent = data.data.cart_count;
                 }
-                window.showCartModal(data);
+                if (feedback) {
+                    feedback.textContent = data.data.message || '';
+                    feedback.className = 'small mt-2 text-success';
+                }
+                window.showCartModal(data.data);
             }
-        }).catch(function () {
+        }).catch(function (error) {
+            if (error && error.message) {
+                if (feedback) {
+                    feedback.textContent = error.message;
+                    feedback.className = 'small mt-2 text-danger';
+                }
+                return;
+            }
             form.submit();
+        }).finally(function () {
+            if (addButton) {
+                addButton.disabled = false;
+            }
+            form.classList.remove('is-loading');
         });
     });
 </script>

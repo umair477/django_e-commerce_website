@@ -70,6 +70,14 @@
     </div>
 
     <script>
+        window.getCsrfToken = function() {
+            var cookie = document.cookie
+                .split(';')
+                .map(function(part) { return part.trim(); })
+                .find(function(part) { return part.indexOf('csrftoken=') === 0; });
+            return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+        };
+
         window.showCartModal = function(payload) {
             document.getElementById('cart-modal-product-name').textContent = payload.product_name || '';
             document.getElementById('cart-modal-product-price').textContent = payload.product_price || '0.00';

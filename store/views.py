@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Avg, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -24,7 +25,7 @@ def _base_product_queryset():
     )
 
 
-def store(request, category_slug=None):
+def _store_context(request, category_slug=None):
     category = None
     queryset = _base_product_queryset()
 
@@ -56,18 +57,29 @@ def store(request, category_slug=None):
             .distinct()
         ),
     }
+    query_without_page = request.GET.copy()
+    query_without_page.pop("page", None)
 
-    context = {
+    return {
         "category": category,
         "products": paged_products,
         "product_count": filtered_products.count(),
         "filter_form": filter_form,
         "filter_options": filter_options,
         "keyword": keyword,
+        "store_action_url": category.get_url() if category else reverse("store"),
+        "base_querystring": query_without_page.urlencode(),
         "meta_title": category.catergory_name if category else _("Store"),
         "meta_description": category.description if category and category.description else settings.SITE_DESCRIPTION,
     }
-    return render(request, "store/store.html", context)
+
+
+def store(request, category_slug=None):
+    context = _store_context(request, category_slug=category_slug)
+    template_name = "store/partials/product_results.html"
+    if request.headers.get("x-requested-with") != "XMLHttpRequest":
+        template_name = "store/store.html"
+    return render(request, template_name, context)
 
 
 def product_detail(request, category_slug, product_slug):

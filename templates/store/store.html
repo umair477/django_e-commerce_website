@@ -17,21 +17,40 @@
         <div class="row">
             <aside class="col-md-3">
                 <div class="card">
-                    <form method="get" class="card-body">
-                        {% if keyword %}
-                        <input type="hidden" name="keyword" value="{{ keyword }}">
-                        {% endif %}
+                    <form method="get" class="card-body" id="store-filter-form" action="{{ store_action_url }}" data-store-url="{% url 'store' %}">
+                        <article class="filter-group">
+                            <header class="card-header">
+                                <h6 class="title">{% trans "Search" %}</h6>
+                            </header>
+                            <div class="filter-content">
+                                <input
+                                    class="form-control"
+                                    type="search"
+                                    name="keyword"
+                                    value="{{ keyword }}"
+                                    placeholder="{% trans 'Search products' %}"
+                                    autocomplete="off"
+                                >
+                            </div>
+                        </article>
+
                         <article class="filter-group">
                             <header class="card-header">
                                 <h6 class="title">{% trans "Categories" %}</h6>
                             </header>
                             <div class="filter-content">
-                                <ul class="list-menu">
-                                    <li><a href="{% url 'store' %}">{% trans "All Products" %}</a></li>
+                                <select class="form-control" id="ajax-category-filter">
+                                    <option value="" data-url="{% url 'store' %}">{% trans "All Products" %}</option>
                                     {% for category_link in links %}
-                                    <li><a href="{{ category_link.get_url }}">{{ category_link.catergory_name }}</a></li>
+                                    <option
+                                        value="{{ category_link.slug }}"
+                                        data-url="{{ category_link.get_url }}"
+                                        {% if category and category.slug == category_link.slug %}selected{% endif %}
+                                    >
+                                        {{ category_link.catergory_name }}
+                                    </option>
                                     {% endfor %}
-                                </ul>
+                                </select>
                             </div>
                         </article>
 
@@ -107,78 +126,134 @@
             </aside>
 
             <main class="col-md-9">
-                <header class="border-bottom mb-4 pb-3">
-                    <div class="form-inline">
-                        <span class="mr-md-auto"><b>{{ product_count }}</b> {% trans "Items found" %}</span>
-                    </div>
-                </header>
-
-                <div class="row">
-                    {% if products %}
-                        {% for product in products %}
-                        <div class="col-md-4">
-                            <figure class="card card-product-grid">
-                                <div class="img-wrap">
-                                    <a href="{{ product.get_url }}">
-                                        {% if product.main_image %}
-                                        <img src="{{ product.main_image.url }}" alt="{{ product.product_name }}">
-                                        {% else %}
-                                        <img src="{% static 'images/no-image.png' %}" alt="{% trans 'No image available' %}">
-                                        {% endif %}
-                                    </a>
-                                </div>
-                                <figcaption class="info-wrap">
-                                    <div class="fix-height">
-                                        <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-                                        <div class="price-wrap mt-2">
-                                            <span class="price">${{ product.effective_price }}</span>
-                                            {% if product.discount_price %}
-                                            <small class="text-muted"><s>${{ product.price }}</s></small>
-                                            {% endif %}
-                                        </div>
-                                        {% if product.brand %}
-                                        <small class="text-muted">{{ product.brand }}</small>
-                                        {% endif %}
-                                    </div>
-                                    <a href="{{ product.get_url }}" class="btn btn-block btn-primary">{% trans "View Product" %}</a>
-                                </figcaption>
-                            </figure>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                    <div class="col-12">
-                        <h2>{% trans "No product found. Please try again." %}</h2>
-                    </div>
-                    {% endif %}
+                <div id="product-results" class="ajax-panel">
+                    {% include "store/partials/product_results.html" %}
                 </div>
-
-                <nav class="mt-4" aria-label="{% trans 'Page navigation' %}">
-                    {% if products.has_other_pages %}
-                    <ul class="pagination">
-                        {% if products.has_previous %}
-                        <li class="page-item"><a class="page-link" href="?page={{ products.previous_page_number }}">{% trans "Previous" %}</a></li>
-                        {% else %}
-                        <li class="page-item disabled"><a class="page-link" href="#">{% trans "Previous" %}</a></li>
-                        {% endif %}
-
-                        {% for i in products.paginator.page_range %}
-                        {% if products.number == i %}
-                        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
-                        {% else %}
-                        <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
-                        {% endif %}
-                        {% endfor %}
-
-                        {% if products.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{ products.next_page_number }}">{% trans "Next" %}</a></li>
-                        {% else %}
-                        <li class="page-item disabled"><a class="page-link" href="#">{% trans "Next" %}</a></li>
-                        {% endif %}
-                    </ul>
-                    {% endif %}
-                </nav>
             </main>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        var filterForm = document.getElementById('store-filter-form');
+        var categoryFilter = document.getElementById('ajax-category-filter');
+        var productResults = document.getElementById('product-results');
+        if (!filterForm || !productResults) {
+            return;
+        }
+
+        var keywordInput = filterForm.querySelector('[name="keyword"]');
+        var debounceTimer = null;
+
+        function syncFormWithUrl(url) {
+            var parsedUrl = new URL(url, window.location.origin);
+            var params = parsedUrl.searchParams;
+
+            filterForm.action = parsedUrl.pathname;
+            if (categoryFilter) {
+                var activeOption = Array.prototype.find.call(categoryFilter.options, function(option) {
+                    return option.dataset.url === parsedUrl.pathname;
+                });
+                categoryFilter.value = activeOption ? activeOption.value : '';
+            }
+
+            Array.prototype.forEach.call(filterForm.elements, function(element) {
+                if (!element.name) {
+                    return;
+                }
+                if (element.type === 'checkbox') {
+                    element.checked = params.has(element.name);
+                    return;
+                }
+                if (element.name === 'keyword') {
+                    element.value = params.get(element.name) || '';
+                    return;
+                }
+                if (element.tagName === 'SELECT' || element.type === 'number' || element.type === 'search' || element.type === 'text') {
+                    element.value = params.get(element.name) || '';
+                }
+            });
+        }
+
+        function buildFilterUrl(extraParams) {
+            var params = new URLSearchParams(new FormData(filterForm));
+            params.delete('page');
+            if (extraParams) {
+                Object.keys(extraParams).forEach(function(key) {
+                    if (!extraParams[key]) {
+                        params.delete(key);
+                    } else {
+                        params.set(key, extraParams[key]);
+                    }
+                });
+            }
+            var query = params.toString();
+            return query ? filterForm.action + '?' + query : filterForm.action;
+        }
+
+        function fetchResults(url, pushState) {
+            productResults.classList.add('is-loading');
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function(response) {
+                return response.text();
+            }).then(function(html) {
+                productResults.innerHTML = html;
+                if (pushState) {
+                    window.history.pushState({ url: url }, '', url);
+                }
+                syncFormWithUrl(url);
+            }).catch(function() {
+                window.location.href = url;
+            }).finally(function() {
+                productResults.classList.remove('is-loading');
+            });
+        }
+
+        function refreshFromForm() {
+            fetchResults(buildFilterUrl(), true);
+        }
+
+        filterForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            refreshFromForm();
+        });
+
+        filterForm.addEventListener('change', function(event) {
+            if (event.target === categoryFilter) {
+                var selectedOption = categoryFilter.options[categoryFilter.selectedIndex];
+                filterForm.action = selectedOption ? selectedOption.dataset.url : filterForm.dataset.storeUrl;
+            }
+            if (event.target.name !== 'keyword') {
+                refreshFromForm();
+            }
+        });
+
+        if (keywordInput) {
+            keywordInput.addEventListener('input', function() {
+                window.clearTimeout(debounceTimer);
+                debounceTimer = window.setTimeout(refreshFromForm, 300);
+            });
+        }
+
+        productResults.addEventListener('click', function(event) {
+            var link = event.target.closest('.page-link');
+            if (!link || link.parentElement.classList.contains('disabled') || link.getAttribute('href') === '#') {
+                return;
+            }
+            event.preventDefault();
+            fetchResults(link.href, true);
+        });
+
+        window.addEventListener('popstate', function() {
+            syncFormWithUrl(window.location.href);
+            fetchResults(window.location.href, false);
+        });
+    })();
+</script>
 {% endblock %}

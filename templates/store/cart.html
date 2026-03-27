@@ -4,15 +4,13 @@
 {% block content %}
 <section class="section-content padding-y bg">
     <div class="container">
+        <div id="cart-page-content">
         {% if not cart_items %}
-        <h2 class="text-center">{% trans "No item in cart" %}</h2>
-        <div class="text-center">
-            <a href="{% url 'store' %}" class="btn btn-primary">{% trans "Continue Shopping" %}</a>
-        </div>
+            {% include "store/partials/cart_empty_state.html" %}
         {% else %}
-        <div class="row">
-            <aside class="col-lg-9">
-                <div class="card">
+        <div class="row" id="cart-layout">
+            <aside class="col-lg-9 mb-4">
+                <div class="card ajax-panel" id="cart-table-panel">
                     <table class="table table-borderless table-shopping-cart">
                         <thead class="text-muted">
                             <tr class="small text-uppercase">
@@ -22,9 +20,9 @@
                                 <th scope="col" class="text-right" width="200"></th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="cart-item-list">
                             {% for cart_item in cart_items %}
-                            <tr>
+                            <tr data-cart-item-row data-cart-item-id="{{ cart_item.id }}">
                                 <td>
                                     <figure class="itemside align-items-center">
                                         <div class="aside">
@@ -45,32 +43,51 @@
                                     </figure>
                                 </td>
                                 <td>
-                                    <div class="col">
-                                        <div class="input-group input-spinner">
-                                            <div class="input-group-prepend">
-                                                <a href="{% url 'remove_cart' cart_item.product.id cart_item.id %}" class="btn btn-light" type="button"><i class="fa fa-minus"></i></a>
-                                            </div>
-                                            <input type="text" class="form-control" value="{{ cart_item.quantity }}">
-                                            <div class="input-group-append">
-                                                <form action="{% url 'add_cart' cart_item.product.id %}" method="POST">
-                                                    {% csrf_token %}
-                                                    {% for item in cart_item.variations.all %}
-                                                    <input type="hidden" name="{{ item.variation_category.name|lower }}" value="{{ item.variation_value|capfirst }}">
-                                                    {% endfor %}
-                                                    <button class="btn btn-light" type="submit"><i class="fa fa-plus"></i></button>
-                                                </form>
-                                            </div>
-                                        </div>
+                                    <div class="quantity-stepper">
+                                        <button
+                                            type="button"
+                                            class="btn btn-light"
+                                            data-cart-action="decrement"
+                                            data-update-url="{% url 'update_cart_item' cart_item.id %}"
+                                            aria-label="{% trans 'Decrease quantity' %}"
+                                        >
+                                            <i class="fa fa-minus"></i>
+                                        </button>
+                                        <input
+                                            type="number"
+                                            class="form-control"
+                                            value="{{ cart_item.quantity }}"
+                                            min="1"
+                                            max="{{ cart_item.product.stock_count }}"
+                                            readonly
+                                            data-cart-quantity
+                                        >
+                                        <button
+                                            type="button"
+                                            class="btn btn-light"
+                                            data-cart-action="increment"
+                                            data-update-url="{% url 'update_cart_item' cart_item.id %}"
+                                            aria-label="{% trans 'Increase quantity' %}"
+                                        >
+                                            <i class="fa fa-plus"></i>
+                                        </button>
                                     </div>
                                 </td>
                                 <td>
                                     <div class="price-wrap">
-                                        <var class="price">${{ cart_item.sub_total }}</var>
+                                        <var class="price">$<span data-item-subtotal>{{ cart_item.sub_total }}</span></var>
                                         <small class="text-muted">${{ cart_item.product.effective_price }} {% trans "each" %}</small>
                                     </div>
                                 </td>
                                 <td class="text-right">
-                                    <a href="{% url 'remove_cart_item' cart_item.product.id cart_item.id %}" onclick="return confirm('Are you sure to remove the item?')" class="btn btn-danger">{% trans "Remove" %}</a>
+                                    <button
+                                        type="button"
+                                        class="btn btn-danger"
+                                        data-cart-action="remove"
+                                        data-update-url="{% url 'update_cart_item' cart_item.id %}"
+                                    >
+                                        {% trans "Remove" %}
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -79,20 +96,25 @@
                 </div>
             </aside>
             <aside class="col-lg-3">
-                <div class="card">
+                <div class="card ajax-panel" id="cart-summary-panel">
                     <div class="card-body">
                         <dl class="dlist-align">
                             <dt>{% trans "Subtotal" %}:</dt>
-                            <dd class="text-right">${{ subtotal }}</dd>
+                            <dd class="text-right">$<span data-cart-summary="subtotal">{{ subtotal }}</span></dd>
                         </dl>
                         <dl class="dlist-align">
                             <dt>{% trans "Tax" %}:</dt>
-                            <dd class="text-right">${{ tax }}</dd>
+                            <dd class="text-right">$<span data-cart-summary="tax">{{ tax }}</span></dd>
+                        </dl>
+                        <dl class="dlist-align">
+                            <dt>{% trans "Shipping" %}:</dt>
+                            <dd class="text-right">$<span data-cart-summary="shipping">{{ shipping }}</span></dd>
                         </dl>
                         <dl class="dlist-align">
                             <dt>{% trans "Total" %}:</dt>
-                            <dd class="text-right text-dark b"><strong>${{ grand_total }}</strong></dd>
+                            <dd class="text-right text-dark b"><strong>$<span data-cart-summary="grand_total">{{ grand_total }}</span></strong></dd>
                         </dl>
+                        <p class="small mb-3 text-muted" id="cart-feedback" role="status" aria-live="polite"></p>
                         <hr>
                         <p class="text-center mb-3">
                             <img src="{% static 'images/misc/payments.png' %}" height="26" alt="{% trans 'Payments' %}">
@@ -104,6 +126,116 @@
             </aside>
         </div>
         {% endif %}
+        </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        var cartContent = document.getElementById('cart-page-content');
+        if (!cartContent) {
+            return;
+        }
+
+        function setLoading(row, isLoading) {
+            if (row) {
+                row.classList.toggle('is-loading', isLoading);
+            }
+            ['cart-table-panel', 'cart-summary-panel'].forEach(function(id) {
+                var panel = document.getElementById(id);
+                if (panel) {
+                    panel.classList.toggle('is-loading', isLoading);
+                }
+            });
+        }
+
+        function updateSummary(payload) {
+            var cartCount = document.getElementById('cart-count');
+            if (cartCount) {
+                cartCount.textContent = payload.cart_count;
+            }
+            Object.keys({
+                subtotal: payload.cart_total,
+                tax: payload.tax,
+                shipping: payload.shipping,
+                grand_total: payload.grand_total
+            }).forEach(function(key) {
+                var node = document.querySelector('[data-cart-summary="' + key + '"]');
+                if (node) {
+                    node.textContent = {
+                        subtotal: payload.cart_total,
+                        tax: payload.tax,
+                        shipping: payload.shipping,
+                        grand_total: payload.grand_total
+                    }[key];
+                }
+            });
+            var feedback = document.getElementById('cart-feedback');
+            if (feedback) {
+                feedback.textContent = payload.message || '';
+                feedback.className = payload.success === false ? 'small mb-3 text-danger' : 'small mb-3 text-muted';
+            }
+        }
+
+        cartContent.addEventListener('click', function(event) {
+            var trigger = event.target.closest('[data-cart-action]');
+            if (!trigger) {
+                return;
+            }
+            event.preventDefault();
+
+            if (trigger.dataset.cartAction === 'remove' && !window.confirm("{% trans 'Are you sure you want to remove this item?' %}")) {
+                return;
+            }
+
+            var row = trigger.closest('[data-cart-item-row]');
+            var url = trigger.dataset.updateUrl;
+            var action = trigger.dataset.cartAction;
+            var formData = new FormData();
+            formData.append('action', action);
+
+            setLoading(row, true);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': window.getCsrfToken()
+                },
+                body: formData
+            }).then(function(response) {
+                return response.json().then(function(data) {
+                    return { ok: response.ok, data: data };
+                });
+            }).then(function(result) {
+                updateSummary(result.data);
+                if (!result.ok || result.data.success === false) {
+                    return;
+                }
+
+                if (result.data.item_removed && row) {
+                    row.remove();
+                } else if (row) {
+                    var qty = row.querySelector('[data-cart-quantity]');
+                    var subtotal = row.querySelector('[data-item-subtotal]');
+                    if (qty) {
+                        qty.value = result.data.quantity;
+                    }
+                    if (subtotal) {
+                        subtotal.textContent = result.data.item_subtotal;
+                    }
+                }
+
+                if (result.data.cart_empty && result.data.empty_cart_html) {
+                    cartContent.innerHTML = result.data.empty_cart_html;
+                }
+            }).catch(function() {
+                window.location.reload();
+            }).finally(function() {
+                setLoading(row, false);
+            });
+        });
+    })();
+</script>
 {% endblock %}

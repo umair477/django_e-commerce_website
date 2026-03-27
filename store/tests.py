@@ -30,6 +30,7 @@ class StoreViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Runner")
+        self.assertContains(response, "Save 21%")
 
     def test_product_detail_renders_reviews(self):
         user = Account.objects.create_user(
@@ -43,3 +44,15 @@ class StoreViewTests(TestCase):
         response = self.client.get(reverse("product_detail", args=[self.category.slug, self.product.slug]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Solid shoe")
+        self.assertContains(response, "Save 21%")
+
+    def test_store_ajax_returns_partial_results(self):
+        response = self.client.get(
+            reverse("store"),
+            {"keyword": "Runner"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="product-container"', html=False)
+        self.assertContains(response, "Runner")
+        self.assertNotContains(response, "<html", html=False)

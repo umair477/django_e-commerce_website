@@ -1,0 +1,89 @@
+{% load i18n static %}
+<header class="border-bottom mb-4 pb-3">
+    <div class="form-inline">
+        <span class="mr-md-auto"><b>{{ product_count }}</b> {% trans "Items found" %}</span>
+    </div>
+</header>
+
+<div class="row" id="product-container">
+    {% if products %}
+        {% for product in products %}
+        <div class="col-md-4">
+            <figure class="card card-product-grid h-100">
+                <div class="img-wrap">
+                    {% if product.has_discount %}
+                    <span class="sale-badge">{% trans "Sale" %}</span>
+                    {% endif %}
+                    <a href="{{ product.get_url }}">
+                        {% if product.main_image %}
+                        <img src="{{ product.main_image.url }}" alt="{{ product.product_name }}">
+                        {% else %}
+                        <img src="{% static 'images/no-image.png' %}" alt="{% trans 'No image available' %}">
+                        {% endif %}
+                    </a>
+                </div>
+                <figcaption class="info-wrap d-flex flex-column">
+                    <div class="fix-height flex-grow-1">
+                        <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
+                        <div class="price-wrap mt-2">
+                            <span class="price">${{ product.effective_price }}</span>
+                            {% if product.has_discount %}
+                            <small class="price-original ml-2">${{ product.price }}</small>
+                            <div class="mt-2">
+                                <span class="price-save-pill">
+                                    {% blocktrans with percent=product.discount_percent %}Save {{ percent }}%{% endblocktrans %}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if product.brand %}
+                        <small class="text-muted">{{ product.brand }}</small>
+                        {% endif %}
+                    </div>
+                    <a href="{{ product.get_url }}" class="btn btn-block btn-primary mt-3">{% trans "View Product" %}</a>
+                </figcaption>
+            </figure>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="col-12">
+        <h2>{% trans "No product found. Please try again." %}</h2>
+    </div>
+    {% endif %}
+</div>
+
+<nav class="mt-4" aria-label="{% trans 'Page navigation' %}">
+    {% if products.has_other_pages %}
+    <ul class="pagination">
+        {% if products.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="{% if base_querystring %}?{{ base_querystring }}&page={{ products.previous_page_number }}{% else %}?page={{ products.previous_page_number }}{% endif %}">
+                {% trans "Previous" %}
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><a class="page-link" href="#">{% trans "Previous" %}</a></li>
+        {% endif %}
+
+        {% for i in products.paginator.page_range %}
+        {% if products.number == i %}
+        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+        {% else %}
+        <li class="page-item">
+            <a class="page-link" href="{% if base_querystring %}?{{ base_querystring }}&page={{ i }}{% else %}?page={{ i }}{% endif %}">{{ i }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+
+        {% if products.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{% if base_querystring %}?{{ base_querystring }}&page={{ products.next_page_number }}{% else %}?page={{ products.next_page_number }}{% endif %}">
+                {% trans "Next" %}
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><a class="page-link" href="#">{% trans "Next" %}</a></li>
+        {% endif %}
+    </ul>
+    {% endif %}
+</nav>

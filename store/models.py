@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from io import BytesIO
 from pathlib import Path
 
@@ -81,9 +81,24 @@ class Product(models.Model):
 
     @property
     def effective_price(self):
-        if self.discount_price is not None and self.discount_price > Decimal("0"):
+        if self.has_discount:
             return self.discount_price
         return self.price
+
+    @property
+    def has_discount(self):
+        return (
+            self.discount_price is not None
+            and self.discount_price > Decimal("0")
+            and self.discount_price < self.price
+        )
+
+    @property
+    def discount_percent(self):
+        if not self.has_discount or self.price <= Decimal("0"):
+            return 0
+        percentage = ((self.price - self.discount_price) / self.price) * Decimal("100")
+        return int(percentage.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
     @property
     def in_stock(self):
