@@ -2,11 +2,11 @@
 {% load i18n static %}
 
 {% block content %}
-<section class="section-content padding-y bg">
+<section class="section-content padding-y bg product-detail-shell">
     <div class="container">
-        <div class="card">
+        <div class="card product-detail-card">
             <div class="row no-gutters">
-                <aside class="col-md-6">
+                <aside class="col-lg-6 product-detail-media">
                     <article class="gallery-wrap product-detail-gallery">
                         {% if single_product.has_discount %}
                         <span class="sale-badge">{% trans "Sale" %}</span>
@@ -43,7 +43,7 @@
                         </div>
                     </article>
                 </aside>
-                <main class="col-md-6 border-left">
+                <main class="col-lg-6 border-left product-detail-info">
                     <article class="content-body">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
@@ -76,7 +76,7 @@
 
                         <p>{{ single_product.description }}</p>
                         {% if single_product.brand %}
-                        <p><strong>{% trans "Brand" %}:</strong> {{ single_product.brand }}</p>
+                        <p class="mb-4"><strong>{% trans "Brand" %}:</strong> {{ single_product.brand }}</p>
                         {% endif %}
                         <hr>
 

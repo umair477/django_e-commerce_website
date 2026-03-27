@@ -1,97 +1,138 @@
 {% load i18n static %}
-<header class="section-header">
-    <nav class="navbar p-md-0 navbar-expand-sm navbar-light border-bottom">
-        <div class="container">
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTop4" aria-controls="navbarTop4" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarTop4">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item dropdown">
-                        <form action="{% url 'set_language' %}" method="post" class="form-inline my-1">
-                            {% csrf_token %}
-                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                            <select name="language" class="form-control form-control-sm" onchange="this.form.submit()">
-                                {% get_current_language as LANGUAGE_CODE %}
-                                {% get_available_languages as LANGUAGES %}
-                                {% for code, name in LANGUAGES %}
-                                <option value="{{ code }}" {% if code == LANGUAGE_CODE %}selected{% endif %}>{{ name }}</option>
-                                {% endfor %}
-                            </select>
-                        </form>
-                    </li>
-                    <li class="nav-item">
-                        <span class="nav-link">USD</span>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li><span class="nav-link"><i class="fa fa-envelope"></i> {{ site_name }}</span></li>
-                    <li><span class="nav-link"><i class="fa fa-phone"></i> {% trans "Customer Care" %}</span></li>
-                </ul>
-            </div>
+<header class="site-header-shell" id="siteHeader">
+    <div class="announcement-bar">
+        <div class="container announcement-bar__inner">
+            <p class="mb-0">{% trans "Minimal routines, calm skin, everyday luxury." %}</p>
+            <form action="{% url 'set_language' %}" method="post" class="announcement-bar__locale">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <select name="language" onchange="this.form.submit()">
+                    {% get_current_language as LANGUAGE_CODE %}
+                    {% get_available_languages as LANGUAGES %}
+                    {% for code, name in LANGUAGES %}
+                    <option value="{{ code }}" {% if code == LANGUAGE_CODE %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
         </div>
-    </nav>
+    </div>
 
-    <section class="header-main border-bottom">
+    <div class="site-header-main">
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-2 col-md-3 col-6">
-                    <a href="{% url 'home' %}" class="brand-wrap">
-                        <img class="logo" src="{% static 'images/logo.png' %}" alt="{{ site_name }}">
+            <div class="site-header-row">
+                <button class="icon-button site-menu-toggle" type="button" id="openMenuDrawer" aria-label="{% trans 'Open navigation' %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M4 7h16M4 12h16M4 17h16"></path>
+                    </svg>
+                </button>
+
+                <a href="{% url 'home' %}" class="site-brand-mark">
+                    <span class="site-brand-mark__eyebrow">{{ site_name }}</span>
+                    <span class="site-brand-mark__title">Skin Rituals</span>
+                </a>
+
+                <div class="site-header-actions">
+                    <a href="{% url 'store' %}" class="icon-button d-none d-md-inline-flex" aria-label="{% trans 'Search products' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                            <circle cx="11" cy="11" r="6"></circle>
+                            <path d="M20 20l-4.35-4.35"></path>
+                        </svg>
+                    </a>
+                    <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="icon-button" aria-label="{% trans 'Profile' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                            <path d="M18 20a6 6 0 0 0-12 0"></path>
+                            <circle cx="12" cy="10" r="4"></circle>
+                        </svg>
+                    </a>
+                    <a href="{% url 'cart' %}" class="icon-button site-cart-link" aria-label="{% trans 'Cart' %}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                            <path d="M6 7h15l-1.5 8.5H8L6 4H3"></path>
+                            <circle cx="9" cy="19" r="1"></circle>
+                            <circle cx="18" cy="19" r="1"></circle>
+                        </svg>
+                        <span class="site-cart-count" id="cart-count">{{ cart_count }}</span>
                     </a>
                 </div>
-                <div class="col-lg col-sm col-md col-6 flex-grow-0">
-                    <div class="category-wrap dropdown d-inline-block float-right">
-                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
-                            <i class="fa fa-bars"></i> {% trans "All category" %}
-                        </button>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="{% url 'store' %}">{% trans "All Products" %}</a>
-                            {% for category in links %}
-                            <a class="dropdown-item" href="{{ category.get_url }}">{{ category.catergory_name }}</a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                <a href="{% url 'store' %}" class="btn btn-outline-primary">{% trans "Store" %}</a>
-                <div class="col-lg col-md-6 col-sm-12 col">
-                    <form action="{% url 'search' %}" class="search" method="GET">
-                        <div class="input-group w-100">
-                            <input type="text" class="form-control" style="width:60%;" placeholder="{% trans 'Search' %}" name="keyword" value="{{ request.GET.keyword }}">
-                            <div class="input-group-append">
-                                <button class="btn btn-primary" type="submit">
-                                    <i class="fa fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="col-lg-3 col-sm-6 col-8 order-2 order-lg-3">
-                    <div class="d-flex justify-content-end mb-3 mb-lg-0">
-                        {% if user.is_authenticated %}
-                        <div class="widget-header">
-                            <small class="title text-muted">{% trans "Welcome" %} {{ user.first_name|default:user.username }}</small>
-                            <div>
-                                <a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a> <span class="dark-transp"> | </span>
-                                <a href="{% url 'logout' %}">{% trans "Log Out" %}</a>
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="widget-header">
-                            <small class="title text-muted">{% trans "Welcome Guest" %}</small>
-                            <div>
-                                <a href="{% url 'login' %}">{% trans "Sign in" %}</a> <span class="dark-transp"> | </span>
-                                <a href="{% url 'register' %}">{% trans "Register" %}</a>
-                            </div>
-                        </div>
-                        {% endif %}
-                        <a href="{% url 'cart' %}" class="widget-header pl-3 ml-3">
-                            <div class="icon icon-sm rounded-circle border"><i class="fa fa-shopping-cart"></i></div>
-                            <span class="badge badge-pill badge-danger notify" id="cart-count">{{ cart_count }}</span>
-                        </a>
-                    </div>
-                </div>
+            </div>
+
+            <div class="site-header-lower d-none d-lg-flex">
+                <nav class="site-desktop-nav" aria-label="{% trans 'Primary navigation' %}">
+                    <a href="{% url 'home' %}">{% trans "Home" %}</a>
+                    <a href="{% url 'store' %}">{% trans "Shop All" %}</a>
+                    {% for category in links|slice:":4" %}
+                    <a href="{{ category.get_url }}">{{ category.catergory_name }}</a>
+                    {% endfor %}
+                </nav>
+                <form action="{% url 'search' %}" class="site-search-form" method="GET">
+                    <input type="text" name="keyword" value="{{ request.GET.keyword }}" placeholder="{% trans 'Search the collection' %}">
+                    <button type="submit">{% trans "Search" %}</button>
+                </form>
             </div>
         </div>
-    </section>
+    </div>
 </header>
+
+<div class="drawer-backdrop" id="menuDrawerBackdrop"></div>
+<aside class="mobile-menu-drawer" id="mobileMenuDrawer" aria-hidden="true">
+    <div class="mobile-menu-drawer__header">
+        <div>
+            <p class="eyebrow mb-2">{% trans "Explore" %}</p>
+            <h3 class="mb-0">{{ site_name }}</h3>
+        </div>
+        <button class="icon-button" type="button" id="closeMenuDrawer" aria-label="{% trans 'Close navigation' %}">
+            <span>&times;</span>
+        </button>
+    </div>
+
+    <form action="{% url 'search' %}" method="GET" class="mobile-menu-search">
+        <input type="search" name="keyword" value="{{ request.GET.keyword }}" placeholder="{% trans 'Search products' %}">
+        <button type="submit">{% trans "Go" %}</button>
+    </form>
+
+    <nav class="mobile-menu-nav" aria-label="{% trans 'Mobile navigation' %}">
+        <a href="{% url 'home' %}">{% trans "Home" %}</a>
+        <a href="{% url 'store' %}">{% trans "Shop All" %}</a>
+        {% for category in links %}
+        <a href="{{ category.get_url }}">{{ category.catergory_name }}</a>
+        {% endfor %}
+        {% if user.is_authenticated %}
+        <a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a>
+        <a href="{% url 'logout' %}">{% trans "Log Out" %}</a>
+        {% else %}
+        <a href="{% url 'login' %}">{% trans "Sign in" %}</a>
+        <a href="{% url 'register' %}">{% trans "Register" %}</a>
+        {% endif %}
+    </nav>
+</aside>
+
+<script>
+    (function () {
+        var drawer = document.getElementById('mobileMenuDrawer');
+        var backdrop = document.getElementById('menuDrawerBackdrop');
+        var openButton = document.getElementById('openMenuDrawer');
+        var closeButton = document.getElementById('closeMenuDrawer');
+
+        function openDrawer() {
+            drawer.classList.add('is-open');
+            backdrop.classList.add('is-open');
+            document.body.classList.add('drawer-open');
+            drawer.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('is-open');
+            backdrop.classList.remove('is-open');
+            document.body.classList.remove('drawer-open');
+            drawer.setAttribute('aria-hidden', 'true');
+        }
+
+        openButton.addEventListener('click', openDrawer);
+        closeButton.addEventListener('click', closeDrawer);
+        backdrop.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeDrawer();
+            }
+        });
+    })();
+</script>

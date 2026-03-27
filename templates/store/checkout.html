@@ -2,16 +2,22 @@
 {% load i18n static %}
 
 {% block content %}
-<section class="section-content padding-y bg">
+<section class="section-content padding-y bg checkout-shell">
     <div class="container">
+        <div class="storefront-section__header mb-4">
+            <div>
+                <p class="eyebrow mb-2">{% trans "Checkout" %}</p>
+                <h2 class="section-title mb-0">{% trans "Complete your order" %}</h2>
+            </div>
+        </div>
         <div class="row">
             <aside class="col-lg-6">
-                <div class="card">
+                <div class="card checkout-shell__card">
                     <div class="card-body">
                         <h4 class="card-title mb-4">{% trans "Checkout" %}</h4>
-                        <form action="{% url 'place_order' %}" method="POST" enctype="multipart/form-data">
+                        <form action="{% url 'place_order' %}" method="POST" enctype="multipart/form-data" class="minimal-form">
                             {% csrf_token %}
-                            <div class="alert alert-light border">
+                            <div class="alert alert-light border checkout-shell__step">
                                 <h6>{% trans "Step 1" %}: {% trans "Shipping and Billing Details" %}</h6>
                                 <p class="mb-0 text-muted">{% trans "Choose a saved address or enter a new one below." %}</p>
                             </div>
@@ -83,7 +89,7 @@
                                 <label>{% trans "Coupon code" %}</label>
                                 {{ order_form.coupon_code }}
                             </div>
-                            <div class="alert alert-light border mt-4">
+                            <div class="alert alert-light border mt-4 checkout-shell__step">
                                 <h6>{% trans "Payment Method" %}</h6>
                                 {% for radio in order_form.payment_method %}
                                 <div class="custom-control custom-radio mb-2">
@@ -92,7 +98,7 @@
                                 </div>
                                 {% endfor %}
                             </div>
-                            <div id="mobile-payment-fields" class="border rounded p-3 mb-3">
+                            <div id="mobile-payment-fields" class="border rounded p-3 mb-3 checkout-shell__payment-fields">
                                 <p class="text-muted mb-3">{% trans "For Easypaisa or JazzCash, provide your mobile account details and either a transaction ID or a payment screenshot for admin verification." %}</p>
                                 <div class="form-group">
                                     <label>{% trans "Mobile Account Phone" %}</label>
@@ -126,9 +132,9 @@
             </aside>
 
             <aside class="col-lg-6">
-                <div class="card">
+                <div class="card checkout-shell__card">
                     <div class="card-body">
-                        <div class="alert alert-light border">
+                        <div class="alert alert-light border checkout-shell__step">
                             <h6>{% trans "Step 2" %}: {% trans "Order Review" %}</h6>
                             <p class="mb-0 text-muted">{% trans "Confirm your items before payment." %}</p>
                         </div>

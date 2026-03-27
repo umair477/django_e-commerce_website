@@ -2,15 +2,21 @@
 {% load i18n static %}
 
 {% block content %}
-<section class="section-content padding-y bg">
+<section class="section-content padding-y bg cart-shell">
     <div class="container">
+        <div class="storefront-section__header mb-4">
+            <div>
+                <p class="eyebrow mb-2">{% trans "Your Bag" %}</p>
+                <h2 class="section-title mb-0">{% trans "Cart" %}</h2>
+            </div>
+        </div>
         <div id="cart-page-content">
         {% if not cart_items %}
             {% include "store/partials/cart_empty_state.html" %}
         {% else %}
         <div class="row" id="cart-layout">
             <aside class="col-lg-9 mb-4">
-                <div class="card ajax-panel" id="cart-table-panel">
+                <div class="card ajax-panel cart-shell__table" id="cart-table-panel">
                     <table class="table table-borderless table-shopping-cart">
                         <thead class="text-muted">
                             <tr class="small text-uppercase">
@@ -96,7 +102,7 @@
                 </div>
             </aside>
             <aside class="col-lg-3">
-                <div class="card ajax-panel" id="cart-summary-panel">
+                <div class="card ajax-panel cart-shell__summary" id="cart-summary-panel">
                     <div class="card-body">
                         <dl class="dlist-align">
                             <dt>{% trans "Subtotal" %}:</dt>

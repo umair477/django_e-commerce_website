@@ -8,7 +8,7 @@
 <div class="row" id="product-container">
     {% if products %}
         {% for product in products %}
-        <div class="col-md-4">
+        <div class="col-6 col-lg-3">
             <figure class="card card-product-grid card-product-grid--merch h-100">
                 <div class="img-wrap">
                     {% if product.has_discount %}
@@ -35,7 +35,7 @@
                         <small class="text-muted">{{ product.brand }}</small>
                         {% endif %}
                     </div>
-                    <a href="{{ product.get_url }}" class="btn btn-block btn-primary mt-3">{% trans "View Product" %}</a>
+                    <a href="{{ product.get_url }}" class="storefront-link storefront-link--button mt-3">{% trans "View Product" %}</a>
                 </figcaption>
             </figure>
         </div>

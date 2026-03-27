@@ -12,6 +12,9 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <link href="{% static 'images/favicon.ico' %}" rel="shortcut icon" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 
     <script src="{% static 'js/jquery-2.0.0.min.js' %}" type="text/javascript"></script>
     <script src="{% static 'js/bootstrap.bundle.min.js' %}" type="text/javascript"></script>
@@ -26,48 +29,50 @@
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="site-body">
     {% include 'includes/navbar.html' %}
     {% include 'includes/alerts.html' %}
     {% block content %}{% endblock %}
     {% include 'includes/footer.html' %}
 
-    <div class="modal fade" id="cartSuccessModal" tabindex="-1" role="dialog" aria-labelledby="cartSuccessLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title w-100 text-center" id="cartSuccessLabel">
-                        <i class="fa fa-check text-success mr-2"></i>{% trans "Product successfully added to your shopping cart" %}
-                    </h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'Close' %}">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+    <div class="drawer-backdrop" id="cartDrawerBackdrop"></div>
+    <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+        <div class="cart-drawer__header">
+            <div>
+                <p class="eyebrow mb-2">{% trans "Bag Updated" %}</p>
+                <h3 class="cart-drawer__title mb-0">{% trans "Added to cart" %}</h3>
+            </div>
+            <button type="button" class="icon-button" id="closeCartDrawer" aria-label="{% trans 'Close cart drawer' %}">
+                <span>&times;</span>
+            </button>
+        </div>
+        <div class="cart-drawer__body">
+            <div class="cart-drawer__product">
+                <div class="cart-drawer__image-shell">
+                    <img id="cart-modal-image" src="{% static 'images/no-image.png' %}" alt="{% trans 'Cart product image' %}">
                 </div>
-                <div class="modal-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-6 border-right">
-                            <div class="media">
-                                <img id="cart-modal-image" src="{% static 'images/no-image.png' %}" class="mr-3" alt="{% trans 'Cart product image' %}" style="width:120px; height:120px; object-fit:cover;">
-                                <div class="media-body">
-                                    <h4 class="mt-0 text-primary" id="cart-modal-product-name"></h4>
-                                    <p class="mb-1">{% trans "Price" %}: $<span id="cart-modal-product-price"></span></p>
-                                    <p class="mb-0">{% trans "Quantity" %}: <span id="cart-modal-quantity"></span></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-2">{% trans "Your cart has been updated." %}</p>
-                            <p class="mb-1">{% trans "Cart total" %}: <strong>$<span id="cart-modal-total"></span></strong></p>
-                            <div class="mt-4 d-flex flex-wrap">
-                                <button type="button" class="btn btn-light mr-2 mb-2" data-dismiss="modal">{% trans "Continue Shopping" %}</button>
-                                <a href="{% url 'cart' %}" class="btn btn-primary mb-2">{% trans "View Cart / Checkout" %}</a>
-                            </div>
-                        </div>
-                    </div>
+                <div class="cart-drawer__details">
+                    <h4 id="cart-modal-product-name" class="mb-2"></h4>
+                    <p class="cart-drawer__meta mb-1">{% trans "Price" %}: $<span id="cart-modal-product-price"></span></p>
+                    <p class="cart-drawer__meta mb-0">{% trans "Quantity" %}: <span id="cart-modal-quantity"></span></p>
                 </div>
             </div>
+            <div class="cart-drawer__summary">
+                <div class="cart-drawer__summary-row">
+                    <span>{% trans "Cart total" %}</span>
+                    <strong>$<span id="cart-modal-total"></span></strong>
+                </div>
+                <div class="cart-drawer__summary-row">
+                    <span>{% trans "Items" %}</span>
+                    <strong><span id="cart-modal-count"></span></strong>
+                </div>
+            </div>
+            <div class="cart-drawer__actions">
+                <button type="button" class="btn btn-light btn-block" id="continueShoppingDrawer">{% trans "Continue Shopping" %}</button>
+                <a href="{% url 'cart' %}" class="btn btn-primary btn-block">{% trans "View Cart / Checkout" %}</a>
+            </div>
         </div>
-    </div>
+    </aside>
 
     <script>
         window.getCsrfToken = function() {
@@ -78,16 +83,68 @@
             return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
         };
 
-        window.showCartModal = function(payload) {
-            document.getElementById('cart-modal-product-name').textContent = payload.product_name || '';
-            document.getElementById('cart-modal-product-price').textContent = payload.product_price || '0.00';
-            document.getElementById('cart-modal-quantity').textContent = payload.quantity_added || 1;
-            document.getElementById('cart-modal-total').textContent = payload.cart_total_price || '0.00';
-            document.getElementById('cart-modal-image').src = payload.image_url || "{% static 'images/no-image.png' %}";
-            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
-                window.jQuery('#cartSuccessModal').modal('show');
+        (function () {
+            var cartDrawer = document.getElementById('cartDrawer');
+            var cartBackdrop = document.getElementById('cartDrawerBackdrop');
+            var closeButton = document.getElementById('closeCartDrawer');
+            var continueButton = document.getElementById('continueShoppingDrawer');
+            var siteHeader = document.getElementById('siteHeader');
+
+            function syncScrollHeader() {
+                if (!siteHeader) {
+                    return;
+                }
+                siteHeader.classList.toggle('is-scrolled', window.scrollY > 12);
             }
-        };
+
+            function openCartDrawer() {
+                if (!cartDrawer || !cartBackdrop) {
+                    return;
+                }
+                cartDrawer.classList.add('is-open');
+                cartBackdrop.classList.add('is-open');
+                document.body.classList.add('drawer-open');
+                cartDrawer.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeCartDrawer() {
+                if (!cartDrawer || !cartBackdrop) {
+                    return;
+                }
+                cartDrawer.classList.remove('is-open');
+                cartBackdrop.classList.remove('is-open');
+                document.body.classList.remove('drawer-open');
+                cartDrawer.setAttribute('aria-hidden', 'true');
+            }
+
+            window.closeCartDrawer = closeCartDrawer;
+            window.showCartModal = function(payload) {
+                document.getElementById('cart-modal-product-name').textContent = payload.product_name || '';
+                document.getElementById('cart-modal-product-price').textContent = payload.product_price || '0.00';
+                document.getElementById('cart-modal-quantity').textContent = payload.quantity_added || 1;
+                document.getElementById('cart-modal-total').textContent = payload.cart_total_price || '0.00';
+                document.getElementById('cart-modal-count').textContent = payload.cart_count || 0;
+                document.getElementById('cart-modal-image').src = payload.image_url || "{% static 'images/no-image.png' %}";
+                openCartDrawer();
+            };
+
+            syncScrollHeader();
+            window.addEventListener('scroll', syncScrollHeader, { passive: true });
+            if (cartBackdrop) {
+                cartBackdrop.addEventListener('click', closeCartDrawer);
+            }
+            if (closeButton) {
+                closeButton.addEventListener('click', closeCartDrawer);
+            }
+            if (continueButton) {
+                continueButton.addEventListener('click', closeCartDrawer);
+            }
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeCartDrawer();
+                }
+            });
+        })();
     </script>
     {% block extra_js %}{% endblock %}
 </body>

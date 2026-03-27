@@ -2,134 +2,99 @@
 {% load i18n static %}
 
 {% block content %}
-<section class="section-pagetop bg">
+<section class="section-pagetop section-pagetop--editorial">
     <div class="container">
-        {% if keyword %}
-        <h2 class="title-page">{% trans "Search Result" %}</h2>
-        {% else %}
-        <h2 class="title-page">{% trans "Our Store" %}</h2>
-        {% endif %}
+        <p class="eyebrow mb-2">{% trans "Collection" %}</p>
+        <h2 class="title-page">
+            {% if keyword %}
+            {% trans "Search Result" %}
+            {% else %}
+            {% trans "Our Store" %}
+            {% endif %}
+        </h2>
+        <p class="section-pagetop__subtle">{% trans "A lighter, faster product grid built for touch and discovery." %}</p>
     </div>
 </section>
 
 <section class="section-content padding-y">
     <div class="container">
-        <div class="row">
-            <aside class="col-md-3">
-                <div class="card">
-                    <form method="get" class="card-body" id="store-filter-form" action="{{ store_action_url }}" data-store-url="{% url 'store' %}">
-                        <article class="filter-group">
-                            <header class="card-header">
-                                <h6 class="title">{% trans "Search" %}</h6>
-                            </header>
-                            <div class="filter-content">
-                                <input
-                                    class="form-control"
-                                    type="search"
-                                    name="keyword"
-                                    value="{{ keyword }}"
-                                    placeholder="{% trans 'Search products' %}"
-                                    autocomplete="off"
-                                >
-                            </div>
-                        </article>
-
-                        <article class="filter-group">
-                            <header class="card-header">
-                                <h6 class="title">{% trans "Categories" %}</h6>
-                            </header>
-                            <div class="filter-content">
-                                <select class="form-control" id="ajax-category-filter">
-                                    <option value="" data-url="{% url 'store' %}">{% trans "All Products" %}</option>
-                                    {% for category_link in links %}
-                                    <option
-                                        value="{{ category_link.slug }}"
-                                        data-url="{{ category_link.get_url }}"
-                                        {% if category and category.slug == category_link.slug %}selected{% endif %}
-                                    >
-                                        {{ category_link.catergory_name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </article>
-
-                        <article class="filter-group">
-                            <header class="card-header">
-                                <h6 class="title">{% trans "Price range" %}</h6>
-                            </header>
-                            <div class="filter-content">
-                                <div class="form-row">
-                                    <div class="form-group col-md-6">
-                                        <label>{% trans "Min" %}</label>
-                                        <input class="form-control" type="number" step="0.01" name="min_price" value="{{ request.GET.min_price }}">
-                                    </div>
-                                    <div class="form-group col-md-6">
-                                        <label>{% trans "Max" %}</label>
-                                        <input class="form-control" type="number" step="0.01" name="max_price" value="{{ request.GET.max_price }}">
-                                    </div>
-                                </div>
-                            </div>
-                        </article>
-
-                        <article class="filter-group">
-                            <header class="card-header">
-                                <h6 class="title">{% trans "Brand" %}</h6>
-                            </header>
-                            <div class="filter-content">
-                                <select name="brand" class="form-control">
-                                    <option value="">{% trans "Any brand" %}</option>
-                                    {% for brand in filter_options.brands %}
-                                    <option value="{{ brand }}" {% if request.GET.brand == brand %}selected{% endif %}>{{ brand }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </article>
-
-                        <article class="filter-group">
-                            <header class="card-header">
-                                <h6 class="title">{% trans "Size" %}</h6>
-                            </header>
-                            <div class="filter-content">
-                                <select name="size" class="form-control">
-                                    <option value="">{% trans "Any size" %}</option>
-                                    {% for size in filter_options.sizes %}
-                                    <option value="{{ size }}" {% if request.GET.size == size %}selected{% endif %}>{{ size|upper }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </article>
-
-                        <article class="filter-group">
-                            <header class="card-header">
-                                <h6 class="title">{% trans "Color" %}</h6>
-                            </header>
-                            <div class="filter-content">
-                                <select name="color" class="form-control">
-                                    <option value="">{% trans "Any color" %}</option>
-                                    {% for color in filter_options.colors %}
-                                    <option value="{{ color }}" {% if request.GET.color == color %}selected{% endif %}>{{ color|capfirst }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </article>
-
-                        <div class="form-group mt-3">
-                            <label class="checkbox-btn">
-                                <input type="checkbox" name="in_stock" {% if request.GET.in_stock %}checked{% endif %}>
-                                <span class="btn btn-light">{% trans "In Stock only" %}</span>
-                            </label>
-                        </div>
-                        <button class="btn btn-block btn-primary" type="submit">{% trans "Apply" %}</button>
-                    </form>
+        <form method="get" class="store-filter-shell" id="store-filter-form" action="{{ store_action_url }}" data-store-url="{% url 'store' %}">
+            <div class="store-filter-shell__grid">
+                <div class="store-filter-field store-filter-field--search">
+                    <label>{% trans "Search" %}</label>
+                    <input
+                        class="form-control"
+                        type="search"
+                        name="keyword"
+                        value="{{ keyword }}"
+                        placeholder="{% trans 'Search products' %}"
+                        autocomplete="off"
+                    >
                 </div>
-            </aside>
-
-            <main class="col-md-9">
-                <div id="product-results" class="ajax-panel">
-                    {% include "store/partials/product_results.html" %}
+                <div class="store-filter-field">
+                    <label>{% trans "Category" %}</label>
+                    <select class="form-control" id="ajax-category-filter">
+                        <option value="" data-url="{% url 'store' %}">{% trans "All Products" %}</option>
+                        {% for category_link in links %}
+                        <option
+                            value="{{ category_link.slug }}"
+                            data-url="{{ category_link.get_url }}"
+                            {% if category and category.slug == category_link.slug %}selected{% endif %}
+                        >
+                            {{ category_link.catergory_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </main>
+                <div class="store-filter-field">
+                    <label>{% trans "Brand" %}</label>
+                    <select name="brand" class="form-control">
+                        <option value="">{% trans "Any brand" %}</option>
+                        {% for brand in filter_options.brands %}
+                        <option value="{{ brand }}" {% if request.GET.brand == brand %}selected{% endif %}>{{ brand }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="store-filter-field">
+                    <label>{% trans "Size" %}</label>
+                    <select name="size" class="form-control">
+                        <option value="">{% trans "Any size" %}</option>
+                        {% for size in filter_options.sizes %}
+                        <option value="{{ size }}" {% if request.GET.size == size %}selected{% endif %}>{{ size|upper }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="store-filter-field">
+                    <label>{% trans "Color" %}</label>
+                    <select name="color" class="form-control">
+                        <option value="">{% trans "Any color" %}</option>
+                        {% for color in filter_options.colors %}
+                        <option value="{{ color }}" {% if request.GET.color == color %}selected{% endif %}>{{ color|capfirst }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="store-filter-field">
+                    <label>{% trans "Min price" %}</label>
+                    <input class="form-control" type="number" step="0.01" name="min_price" value="{{ request.GET.min_price }}">
+                </div>
+                <div class="store-filter-field">
+                    <label>{% trans "Max price" %}</label>
+                    <input class="form-control" type="number" step="0.01" name="max_price" value="{{ request.GET.max_price }}">
+                </div>
+                <div class="store-filter-field store-filter-field--toggle">
+                    <label class="checkbox-btn checkbox-btn--soft">
+                        <input type="checkbox" name="in_stock" {% if request.GET.in_stock %}checked{% endif %}>
+                        <span>{% trans "In Stock only" %}</span>
+                    </label>
+                </div>
+                <div class="store-filter-field store-filter-field--submit">
+                    <button class="btn btn-primary btn-block" type="submit">{% trans "Apply" %}</button>
+                </div>
+            </div>
+        </form>
+
+        <div id="product-results" class="ajax-panel mt-4">
+            {% include "store/partials/product_results.html" %}
         </div>
     </div>
 </section>

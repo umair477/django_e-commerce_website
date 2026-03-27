@@ -2,37 +2,82 @@
 {% load i18n static %}
 
 {% block content %}
-<section class="section-intro padding-y-sm">
+<section class="hero-shell">
     <div class="container">
-        <div class="intro-banner-wrap">
-            <img src="{% static 'images/banners/cover.jpg' %}" class="img-fluid rounded" alt="{% trans 'Store banner' %}">
+        <div class="hero-shell__grid">
+            <div class="hero-shell__copy">
+                <p class="eyebrow">{% trans "Modern Rituals" %}</p>
+                <h1>{% trans "Minimal skincare merchandising with a calmer, touch-first flow." %}</h1>
+                <p class="hero-shell__lede">
+                    {% trans "Discover polished essentials, intentional routines, and a storefront that feels soft, spacious, and easy to browse on every screen." %}
+                </p>
+                <div class="hero-shell__actions">
+                    <a href="{% url 'store' %}" class="btn btn-primary btn-lg">{% trans "Shop the Collection" %}</a>
+                    <a href="{% url 'store' %}?in_stock=on" class="btn btn-light btn-lg">{% trans "In-Stock Picks" %}</a>
+                </div>
+            </div>
+            <div class="hero-shell__media">
+                <div class="hero-shell__image-card">
+                    <img src="{% static 'images/banners/cover.jpg' %}" alt="{% trans 'Store banner' %}">
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
-<section class="section-name padding-y-sm">
+<section class="editorial-strip">
+    <div class="container editorial-strip__grid">
+        <div>
+            <p class="eyebrow mb-2">{% trans "Why It Feels Better" %}</p>
+            <h2>{% trans "High whitespace, calm surfaces, and product-first storytelling." %}</h2>
+        </div>
+        <div class="editorial-strip__points">
+            <span>{% trans "Mobile-first browsing" %}</span>
+            <span>{% trans "Quick cart feedback" %}</span>
+            <span>{% trans "Elegant pricing hierarchy" %}</span>
+        </div>
+    </div>
+</section>
+
+<section class="section-name storefront-section">
     <div class="container">
-        <header class="section-heading">
-            <a href="{% url 'store' %}" class="btn btn-outline-primary float-right">{% trans "See all" %}</a>
-            <h3 class="section-title">{% trans "Popular products" %}</h3>
+        <header class="storefront-section__header">
+            <div>
+                <p class="eyebrow mb-2">{% trans "Featured" %}</p>
+                <h2 class="section-title">{% trans "Popular products" %}</h2>
+            </div>
+            <a href="{% url 'store' %}" class="storefront-link">{% trans "See all" %}</a>
         </header>
 
-        <div class="row">
+        <div class="row product-grid-row">
             {% for product in products %}
-            <div class="col-md-3">
-                <div class="card card-product-grid">
-                    <a href="{{ product.get_url }}" class="img-wrap">
-                        {% if product.main_image %}
-                        <img src="{{ product.main_image.url }}" alt="{{ product.product_name }}">
-                        {% else %}
-                        <img src="{% static 'images/no-image.png' %}" alt="{% trans 'No image available' %}">
+            <div class="col-6 col-lg-3">
+                <figure class="card card-product-grid card-product-grid--merch h-100">
+                    <div class="img-wrap">
+                        {% if product.has_discount %}
+                        <span class="sale-badge">{% trans "Sale" %}</span>
                         {% endif %}
-                    </a>
-                    <figcaption class="info-wrap">
-                        <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
-                        <div class="price mt-1">${{ product.effective_price }}</div>
+                        <a href="{{ product.get_url }}">
+                            {% if product.main_image %}
+                            <img src="{{ product.main_image.url }}" alt="{{ product.product_name }}">
+                            {% else %}
+                            <img src="{% static 'images/no-image.png' %}" alt="{% trans 'No image available' %}">
+                            {% endif %}
+                        </a>
+                    </div>
+                    <figcaption class="info-wrap d-flex flex-column">
+                        <div class="fix-height flex-grow-1">
+                            <a href="{{ product.get_url }}" class="title product-grid-title">{{ product.product_name }}</a>
+                            <div class="price-wrap mt-2">
+                                {% if product.has_discount %}
+                                <span class="price-original mr-2">${{ product.price }}</span>
+                                {% endif %}
+                                <span class="price text-dark font-weight-bold">${{ product.effective_price }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ product.get_url }}" class="storefront-link storefront-link--button mt-3">{% trans "View Product" %}</a>
                     </figcaption>
-                </div>
+                </figure>
             </div>
             {% endfor %}
         </div>
