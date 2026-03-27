@@ -7,7 +7,10 @@
         <div class="card">
             <div class="row no-gutters">
                 <aside class="col-md-6">
-                    <article class="gallery-wrap">
+                    <article class="gallery-wrap product-detail-gallery">
+                        {% if single_product.has_discount %}
+                        <span class="sale-badge">{% trans "Sale" %}</span>
+                        {% endif %}
                         <div class="swiper mySwiper2">
                             <div class="swiper-wrapper">
                                 {% if single_product.main_image %}
@@ -47,7 +50,6 @@
                                 <h2 class="title mb-0">{{ single_product.product_name }}</h2>
                                 {% if single_product.has_discount %}
                                 <div class="mt-2 d-flex flex-wrap align-items-center">
-                                    <span class="sale-badge sale-badge--inline mr-2">{% trans "Sale" %}</span>
                                     <span class="price-save-pill">
                                         {% blocktrans with percent=single_product.discount_percent %}Save {{ percent }}%{% endblocktrans %}
                                     </span>
@@ -64,14 +66,13 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-3 mt-3">
-                            <var class="price h4 mb-0">${{ single_product.effective_price }}</var>
+                        <div class="mb-3 mt-3 product-detail-pricing">
                             {% if single_product.has_discount %}
-                            <div class="mt-2">
-                                <small class="price-original">${{ single_product.price }}</small>
-                            </div>
+                            <span class="price-original mr-3">${{ single_product.price }}</span>
                             {% endif %}
+                            <var class="price h4 mb-0 text-dark font-weight-bold">${{ single_product.effective_price }}</var>
                         </div>
+                        <p class="text-muted mb-4">{% trans "Shipping calculated at checkout." %}</p>
 
                         <p>{{ single_product.description }}</p>
                         {% if single_product.brand %}
@@ -101,8 +102,9 @@
                             {% if single_product.stock <= 0 %}
                             <h5 class="text-danger">{% trans "Out of Stock" %}</h5>
                             {% else %}
-                            <div class="d-flex flex-wrap align-items-center">
-                                <div class="quantity-stepper mr-3 mb-3">
+                            <div class="product-detail-purchase">
+                                <label for="product-quantity" class="d-block font-weight-semibold mb-2">{% trans "Quantity" %}</label>
+                                <div class="quantity-stepper quantity-stepper--soft mb-4">
                                     <button type="button" class="btn btn-light" data-qty-change="-1" aria-label="{% trans 'Decrease quantity' %}">
                                         <i class="fa fa-minus"></i>
                                     </button>
@@ -119,7 +121,7 @@
                                         <i class="fa fa-plus"></i>
                                     </button>
                                 </div>
-                                <button type="submit" class="btn btn-primary mb-3" id="add-to-cart-button">
+                                <button type="submit" class="btn btn-primary btn-lg btn-block mb-3" id="add-to-cart-button">
                                     <span class="text">{% trans "Add to cart" %}</span> <i class="fas fa-shopping-cart"></i>
                                 </button>
                             </div>
@@ -248,6 +250,7 @@
 
 {% block extra_js %}
 <script>
+    (function() {
     var swiper = new Swiper(".mySwiper", {
       spaceBetween: 10,
       slidesPerView: 4,
@@ -315,33 +318,33 @@
             },
             body: new FormData(form)
         }).then(function (response) {
+            var contentType = response.headers.get('content-type') || '';
+            if (contentType.indexOf('application/json') === -1) {
+                throw { message: "{% trans 'The cart request did not return JSON. Please try again.' %}" };
+            }
             return response.json().then(function (data) {
                 return { ok: response.ok, data: data };
             });
-        }).then(function (data) {
-            if (!data.ok || !data.data.success) {
-                throw data.data;
+        }).then(function (result) {
+            if (!result.ok || !result.data.success) {
+                throw result.data;
             }
-            if (data.data.success) {
+            if (result.data.success) {
                 var cartCount = document.getElementById('cart-count');
                 if (cartCount) {
-                    cartCount.textContent = data.data.cart_count;
+                    cartCount.textContent = result.data.cart_count;
                 }
                 if (feedback) {
-                    feedback.textContent = data.data.message || '';
+                    feedback.textContent = result.data.message || '';
                     feedback.className = 'small mt-2 text-success';
                 }
-                window.showCartModal(data.data);
+                window.showCartModal(result.data);
             }
         }).catch(function (error) {
-            if (error && error.message) {
-                if (feedback) {
-                    feedback.textContent = error.message;
-                    feedback.className = 'small mt-2 text-danger';
-                }
-                return;
+            if (feedback) {
+                feedback.textContent = (error && error.message) || "{% trans 'Unable to add this item to the cart right now.' %}";
+                feedback.className = 'small mt-2 text-danger';
             }
-            form.submit();
         }).finally(function () {
             if (addButton) {
                 addButton.disabled = false;
@@ -349,5 +352,6 @@
             form.classList.remove('is-loading');
         });
     });
+    })();
 </script>
 {% endblock %}

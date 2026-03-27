@@ -9,7 +9,7 @@
     {% if products %}
         {% for product in products %}
         <div class="col-md-4">
-            <figure class="card card-product-grid h-100">
+            <figure class="card card-product-grid card-product-grid--merch h-100">
                 <div class="img-wrap">
                     {% if product.has_discount %}
                     <span class="sale-badge">{% trans "Sale" %}</span>
@@ -24,17 +24,12 @@
                 </div>
                 <figcaption class="info-wrap d-flex flex-column">
                     <div class="fix-height flex-grow-1">
-                        <a href="{{ product.get_url }}" class="title">{{ product.product_name }}</a>
+                        <a href="{{ product.get_url }}" class="title product-grid-title">{{ product.product_name }}</a>
                         <div class="price-wrap mt-2">
-                            <span class="price">${{ product.effective_price }}</span>
                             {% if product.has_discount %}
-                            <small class="price-original ml-2">${{ product.price }}</small>
-                            <div class="mt-2">
-                                <span class="price-save-pill">
-                                    {% blocktrans with percent=product.discount_percent %}Save {{ percent }}%{% endblocktrans %}
-                                </span>
-                            </div>
+                            <span class="price-original mr-2">${{ product.price }}</span>
                             {% endif %}
+                            <span class="price text-dark font-weight-bold">${{ product.effective_price }}</span>
                         </div>
                         {% if product.brand %}
                         <small class="text-muted">{{ product.brand }}</small>

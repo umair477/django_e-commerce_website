@@ -84,7 +84,9 @@
             document.getElementById('cart-modal-quantity').textContent = payload.quantity_added || 1;
             document.getElementById('cart-modal-total').textContent = payload.cart_total_price || '0.00';
             document.getElementById('cart-modal-image').src = payload.image_url || "{% static 'images/no-image.png' %}";
-            $('#cartSuccessModal').modal('show');
+            if (window.jQuery && window.jQuery.fn && window.jQuery.fn.modal) {
+                window.jQuery('#cartSuccessModal').modal('show');
+            }
         };
     </script>
     {% block extra_js %}{% endblock %}

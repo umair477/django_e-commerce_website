@@ -30,7 +30,8 @@ class StoreViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Runner")
-        self.assertContains(response, "Save 21%")
+        self.assertContains(response, "Sale")
+        self.assertContains(response, 'class="price-original mr-2">$120.00', html=False)
 
     def test_product_detail_renders_reviews(self):
         user = Account.objects.create_user(

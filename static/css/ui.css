@@ -1415,16 +1415,15 @@ a[class*=card]:hover .title {
 .sale-badge {
   position: absolute;
   top: 14px;
-  left: 14px;
+  right: 14px;
   z-index: 2;
-  background: #dc3545;
+  background: #ed2f13;
   color: #fff;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  border-radius: 2px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
 .sale-badge--inline {
@@ -1451,25 +1450,64 @@ a[class*=card]:hover .title {
 .quantity-stepper {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 0;
+  border: 1px solid rgba(77, 58, 52, 0.45);
   border-radius: 999px;
   overflow: hidden;
-  background: #fff;
+  background: #fff8f7;
 }
 
 .quantity-stepper .btn {
   border-radius: 0;
-  min-width: 44px;
+  min-width: 46px;
+  min-height: 46px;
   border: 0;
+  background: transparent;
+  color: #5f4d48;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.quantity-stepper .btn:hover {
+  background: rgba(237, 47, 19, 0.08);
+  color: #ed2f13;
 }
 
 .quantity-stepper .form-control {
   border: 0;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  width: 72px;
+  width: 52px;
+  min-height: 46px;
   text-align: center;
   box-shadow: none;
+  background: transparent;
+  color: #2f2a28;
+  font-weight: 600;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+
+.quantity-stepper .form-control::-webkit-outer-spin-button,
+.quantity-stepper .form-control::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quantity-stepper--soft {
+  background: #f6ded9;
+}
+
+.quantity-stepper--compact {
+  background: #fff;
+  border-color: rgba(49, 103, 235, 0.18);
+}
+
+.quantity-stepper--compact .btn {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.quantity-stepper--compact .form-control {
+  width: 50px;
+  min-height: 40px;
 }
 
 .ajax-panel {
@@ -1499,6 +1537,54 @@ a[class*=card]:hover .title {
 
 [data-cart-item-row] {
   position: relative;
+}
+
+.card-product-grid--merch {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.card-product-grid--merch .img-wrap {
+  position: relative;
+  background: #fff;
+  border: 1px solid rgba(52, 44, 43, 0.8);
+  border-radius: 24px;
+  padding: 16px;
+  min-height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-product-grid--merch .img-wrap img {
+  width: 100%;
+  max-height: 216px;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+
+.product-grid-title {
+  color: #363234;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.product-detail-gallery {
+  position: relative;
+}
+
+.product-detail-pricing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.product-detail-purchase .btn-primary {
+  border-radius: 999px;
+  padding: 0.95rem 1.5rem;
 }
 
 @keyframes ajax-spin {
